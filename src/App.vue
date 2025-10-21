@@ -1,47 +1,26 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <router-link to="/" class="brand">FlatBlog</router-link>
+      <div class="nav">
+        <router-link to="/">首页</router-link>
+        <router-link to="/profile">个人中心</router-link>
+        <router-link to="/login">登录</router-link>
+        <router-link to="/register">注册</router-link>
+      </div>
     </div>
-  </header>
+  </nav>
 
-  <main>
-    <TheWelcome />
-  </main>
+  <div class="container">
+    <router-view />
+  </div>
+
+  <footer class="footer">© 2025 FlatBlog</footer>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-}
+/* 仅保留局部样式，其余使用全局 blog.css */
 </style>
