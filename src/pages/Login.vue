@@ -1,11 +1,24 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { supabase } from '../lib/supabase';
 const router = useRouter();
 const form = ref({ email: '', password: '' });
-const onSubmit = () => {
-  // 仅演示：存入 localStorage，跳转个人中心
-  localStorage.setItem('flatblog:user', JSON.stringify({ email: form.value.email }));
+const loading = ref(false);
+const errorMsg = ref('');
+
+const onSubmit = async () => {
+  errorMsg.value = '';
+  loading.value = true;
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: form.value.email.trim(),
+    password: form.value.password
+  });
+  loading.value = false;
+  if (error) {
+    errorMsg.value = error.message || '登录失败';
+    return;
+  }
   router.push({ name: 'profile' });
 };
 </script>

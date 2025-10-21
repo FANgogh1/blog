@@ -1,12 +1,22 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { supabase } from '../lib/supabase';
+
 const user = ref(null);
-onMounted(() => {
-  try { user.value = JSON.parse(localStorage.getItem('flatblog:user') || 'null'); }
-  catch { user.value = null; }
+const loading = ref(true);
+
+onMounted(async () => {
+  const { data, error } = await supabase.auth.getUser();
+  loading.value = false;
+  if (error) {
+    user.value = null;
+    return;
+  }
+  user.value = data.user || null;
 });
-const logout = () => {
-  localStorage.removeItem('flatblog:user');
+
+const logout = async () => {
+  await supabase.auth.signOut();
   location.href = '/';
 };
 </script>

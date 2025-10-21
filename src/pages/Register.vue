@@ -1,11 +1,29 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { supabase } from '../lib/supabase';
 const router = useRouter();
 const form = ref({ email: '', password: '', nickname: '' });
-const onSubmit = () => {
-  // 仅演示：注册即写入 localStorage，跳转登录或个人中心
-  localStorage.setItem('flatblog:user', JSON.stringify({ email: form.value.email, nickname: form.value.nickname }));
+const loading = ref(false);
+const errorMsg = ref('');
+const infoMsg = ref('');
+
+const onSubmit = async () => {
+  errorMsg.value = ''; infoMsg.value = '';
+  loading.value = true;
+  const { data, error } = await supabase.auth.signUp({
+    email: form.value.email.trim(),
+    password: form.value.password,
+    options: {
+      data: { nickname: form.value.nickname?.trim() || '' }
+    }
+  });
+  loading.value = false;
+  if (error) {
+    errorMsg.value = error.message || '注册失败';
+    return;
+  }
+  infoMsg.value = '注册成功，请前往邮箱验证后登录';
   router.push({ name: 'login' });
 };
 </script>
