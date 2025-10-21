@@ -36,6 +36,7 @@ const onSubmit = async () => {
         <input class="input" type="password" v-model="form.password" placeholder="••••••••" />
       </label>
       <button class="btn primary" @click="onSubmit">登录</button>
+      <div v-if="errorMsg" style="color:#ff6b6b; margin-top:8px;">{{ errorMsg }}</div>
       <div style="text-align:center; color:var(--muted);">
         还没有账号？<router-link to="/register">去注册</router-link>
       </div>

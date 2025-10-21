@@ -45,6 +45,8 @@ const onSubmit = async () => {
         <input class="input" type="password" v-model="form.password" placeholder="至少 6 位" />
       </label>
       <button class="btn primary" @click="onSubmit">注册</button>
+      <div v-if="errorMsg" style="color:#ff6b6b; margin-top:8px;">{{ errorMsg }}</div>
+      <div v-if="infoMsg" style="color:#18c37a; margin-top:4px;">{{ infoMsg }}</div>
       <div style="text-align:center; color:var(--muted);">
         已有账号？<router-link to="/login">去登录</router-link>
       </div>
