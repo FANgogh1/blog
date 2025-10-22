@@ -34,11 +34,11 @@ const onSubmit = async () => {
     <div style="display:grid; gap:12px;">
       <label>
         昵称
-        <input class="input" v-model="form.nickname" placeholder="起一个好听的名字" />
+        <input class="input" v-model="form.nickname" placeholder="请输入昵称" />
       </label>
       <label>
         邮箱
-        <input class="input" type="email" v-model="form.email" placeholder="you@example.com" />
+        <input class="input" type="email" v-model="form.email" placeholder="youremail@example.com" />
       </label>
       <label>
         密码

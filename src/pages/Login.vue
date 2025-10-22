@@ -29,7 +29,7 @@ const onSubmit = async () => {
     <div style="display:grid; gap:12px;">
       <label>
         邮箱
-        <input class="input" type="email" v-model="form.email" placeholder="your email@example.com" />
+        <input class="input" type="email" v-model="form.email" placeholder="youremail@example.com" />
       </label>
       <label>
         密码
