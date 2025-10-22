@@ -29,11 +29,11 @@ const onSubmit = async () => {
     <div style="display:grid; gap:12px;">
       <label>
         邮箱
-        <input class="input" type="email" v-model="form.email" placeholder="you@example.com" />
+        <input class="input" type="email" v-model="form.email" placeholder="your email@example.com" />
       </label>
       <label>
         密码
-        <input class="input" type="password" v-model="form.password" placeholder="••••••••" />
+        <input class="input" type="password" v-model="form.password" placeholder="请输入密码" />
       </label>
       <button class="btn primary" @click="onSubmit">登录</button>
       <div v-if="errorMsg" style="color:#ff6b6b; margin-top:8px;">{{ errorMsg }}</div>
