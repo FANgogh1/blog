@@ -44,9 +44,13 @@ const createPost = async () => {
     return;
   }
 
+  const meta = userRes?.user?.user_metadata || userRes?.data?.user?.user_metadata || {};
+  const author_name = meta.nickname?.trim() || userRes?.user?.email || userRes?.data?.user?.email || '匿名';
+  const author_avatar = meta.avatar_url || '';
+
   const { error } = await supabase
     .from('posts')
-    .insert([{ title: form.value.title.trim(), content: form.value.content.trim(), author }]);
+    .insert([{ title: form.value.title.trim(), content: form.value.content.trim(), author, author_name, author_avatar }]);
 
   saving.value = false;
   if (error) {
@@ -63,6 +67,14 @@ const createPost = async () => {
   <div class="grid cols-3">
     <article v-for="p in posts" :key="p.id" class="card" style="padding:16px;">
       <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
+      <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
+        <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+        <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+          {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+        </div>
+        <span>{{ p.author_name || '匿名' }}</span>
+        <span style="margin-left:auto; font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
+      </div>
       <p style="color:var(--muted); margin:0 0 12px;">{{ p.content?.slice(0, 60) || '' }}</p>
       <router-link class="btn primary" :to="{ name: 'post', params: { id: p.id } }">阅读详情</router-link>
     </article>
