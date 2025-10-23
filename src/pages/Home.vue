@@ -1,6 +1,15 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
+import MarkdownIt from 'markdown-it';
+const md = new MarkdownIt();
 import { supabase } from '../lib/supabase';
+
+const stripHtml = (html) => {
+  if (!html) return '';
+  return String(html).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+};
 
 const loading = ref(true);
 const posts = ref([]);
@@ -50,7 +59,7 @@ const createPost = async () => {
 
   const { error } = await supabase
     .from('posts')
-    .insert([{ title: form.value.title.trim(), content: form.value.content.trim(), author, author_name, author_avatar }]);
+    .insert([{ title: form.value.title.trim(), content: form.value.content, author, author_name, author_avatar }]);
 
   saving.value = false;
   if (error) {
@@ -75,7 +84,7 @@ const createPost = async () => {
         <span>{{ p.author_name || '匿名' }}</span>
         <span style="margin-left:auto; font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
       </div>
-      <p style="color:var(--muted); margin:0 0 12px;">{{ p.content?.slice(0, 60) || '' }}</p>
+      <p style="color:var(--muted); margin:0 0 12px;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
       <router-link class="btn primary" :to="{ name: 'post', params: { id: p.id } }">阅读详情</router-link>
     </article>
   </div>
@@ -91,10 +100,18 @@ const createPost = async () => {
         标题
         <input class="input" v-model="form.title" placeholder="请输入标题" />
       </label>
-      <label>
-        内容
-        <textarea class="input" v-model="form.content" placeholder="请输入内容" style="min-height:160px; resize:vertical;"></textarea>
-      </label>
+      <div>
+        <div style="font-weight:600; margin-bottom:6px;">内容</div>
+        <div class="card" style="padding:0; overflow:visible;">
+          <QuillEditor theme="snow" v-model:content="form.content" contentType="html" style="height:260px;" />
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <div style="font-weight:600; margin-bottom:6px;">预览</div>
+        <div class="post-content" v-html="form.content"></div>
+      </div>
+
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="btn primary" :disabled="saving" @click="createPost">{{ saving ? '创建中...' : '创建' }}</button>
         <button class="btn" @click="showCreate = false">取消</button>

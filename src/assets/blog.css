@@ -157,3 +157,9 @@ a:hover { color: var(--primary-hover); }
     max-width: none;
   }
 }
+
+/* Ensure bold formatting in Quill editor and rendered content */
+.ql-editor strong, .ql-editor b,
+.post-content strong, .post-content b {
+  font-weight: 700;
+}

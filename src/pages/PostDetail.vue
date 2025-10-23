@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { supabase } from '../lib/supabase';
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
 const route = useRoute();
 const id = computed(() => String(route.params.id));
@@ -228,16 +230,29 @@ onMounted(async () => {
     </div>
 
     <!-- 内容/编辑表单 -->
-    <div v-if="!editMode" style="white-space:pre-wrap; margin-bottom:20px;">{{ content }}</div>
+    <div v-if="!editMode" class="card" style="padding:12px; margin-bottom:16px;">
+      <div style="font-weight:600; margin-bottom:6px;">正文</div>
+      <div class="post-content" v-html="content"></div>
+    </div>
+
     <div v-else class="card" style="padding:12px; display:grid; gap:10px; margin-bottom:16px;">
       <label>
         标题
         <input class="input" v-model="editForm.title" />
       </label>
-      <label>
-        内容
-        <textarea class="input" v-model="editForm.content" style="min-height:160px; resize:vertical;"></textarea>
-      </label>
+
+      <div>
+        <div style="font-weight:600; margin-bottom:6px;">内容</div>
+        <div class="card" style="padding:0; overflow:visible;">
+          <QuillEditor theme="snow" v-model:content="editForm.content" contentType="html" style="height:280px;" />
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <div style="font-weight:600; margin-bottom:6px;">预览</div>
+        <div class="post-content" v-html="editForm.content"></div>
+      </div>
+
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="btn primary" :disabled="editSaving" @click="saveEdit">{{ editSaving ? '保存中...' : '保存' }}</button>
         <button class="btn" @click="cancelEdit">取消</button>
