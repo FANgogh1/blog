@@ -223,6 +223,9 @@ onMounted(async () => {
       <span>{{ authorName || '匿名' }}</span>
       <span style="margin-left:auto; font-size:12px;">{{ publishTime ? `发布于 ${publishTime}` : '' }} · 文章 ID：{{ id }}</span>
     </div>
+    <div style="margin:12px 0;">
+      <router-link class="btn" to="/">返回首页</router-link>
+    </div>
     <!-- 编辑操作：仅作者可见 -->
     <div v-if="ownPost" style="display:flex; gap:8px; margin-bottom:12px;">
       <button class="btn" @click="startEdit">编辑</button>

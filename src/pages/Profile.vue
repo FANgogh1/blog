@@ -13,6 +13,7 @@ const form = ref({
 const saving = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
+const editMode = ref(false);
 
 /** 加载当前用户与资料 */
 onMounted(async () => {
@@ -42,7 +43,7 @@ const onPickAvatar = (e) => {
 
 /** 保存资料：先上传头像(如有)，再更新用户 metadata */
 const onSave = async () => {
-  if (!user.value) return;
+  if (!user.value || !editMode.value) return;
   errorMsg.value = '';
   successMsg.value = '';
   saving.value = true;
@@ -76,11 +77,23 @@ const onSave = async () => {
     // 同步本地 user
     user.value = data.user;
     successMsg.value = '保存成功';
+    editMode.value = false;
   } catch (e) {
     errorMsg.value = e?.message || '保存失败';
   } finally {
     saving.value = false;
   }
+};
+
+const cancelEdit = () => {
+  if (!user.value) return;
+  const meta = user.value.user_metadata || {};
+  form.value.nickname = meta.nickname || '';
+  form.value.avatarPreview = meta.avatar_url || '';
+  form.value.avatarFile = null;
+  errorMsg.value = '';
+  successMsg.value = '';
+  editMode.value = false;
 };
 
 const logout = async () => {
@@ -120,14 +133,17 @@ const logout = async () => {
       <div class="card" style="padding:16px; display:grid; gap:12px;">
         <label>
           昵称
-          <input class="input" v-model="form.nickname" placeholder="输入新的昵称" />
+          <input class="input" v-model="form.nickname" placeholder="输入新的昵称" :disabled="!editMode" />
         </label>
         <label>
           头像
-          <input class="input" type="file" accept="image/*" @change="onPickAvatar" />
+          <input class="input" type="file" accept="image/*" @change="onPickAvatar" :disabled="!editMode" />
         </label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button class="btn primary" :disabled="saving" @click="onSave">
+          <button class="btn" @click="editMode ? cancelEdit() : (editMode = true)">
+            {{ editMode ? '取消编辑' : '编辑资料' }}
+          </button>
+          <button class="btn primary" :disabled="saving || !editMode" @click="onSave">
             {{ saving ? '保存中...' : '保存资料' }}
           </button>
           <router-link class="btn" to="/">返回首页</router-link>
@@ -135,9 +151,7 @@ const logout = async () => {
         </div>
         <div v-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>
         <div v-if="successMsg" style="color:#18c37a;">{{ successMsg }}</div>
-        <div style="color:var(--muted); font-size:12px;">
-          提示：需在 Supabase Storage 中创建公开桶 “avatars”，并允许已登录用户上传/读取。
-        </div>
+
       </div>
     </div>
   </div>

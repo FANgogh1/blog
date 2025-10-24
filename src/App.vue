@@ -31,14 +31,26 @@ const logout = async () => {
   await loadUser();
   router.push('/');
 };
+const searchQuery = ref('');
+const doSearch = () => {
+  const q = searchQuery.value.trim();
+  if (!q) return;
+  router.push({ name: 'search', query: { q } });
+};
 </script>
 
 <template>
   <nav class="navbar">
     <div class="navbar-inner">
       <router-link to="/" class="brand">FlatBlog</router-link>
+      <div class="nav-center" style="flex:1; display:flex; justify-content:center; align-items:center; gap:8px;">
+        <input class="input" v-model="searchQuery" placeholder="搜索博客标题..." @keyup.enter="doSearch" style="min-width:280px;" />
+        <button class="btn" @click="doSearch">搜索</button>
+      </div>
       <div class="nav" style="margin-left:auto; display:flex; align-items:center; gap:12px;">
         <router-link to="/">首页</router-link>
+        <router-link to="/hot">热榜</router-link>
+        <router-link to="/my">我的博客</router-link>
 
         <!-- 登录态：头像+昵称（点击进个人中心） + 退出 -->
         <template v-if="currentUser">

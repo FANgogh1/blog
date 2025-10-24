@@ -117,7 +117,7 @@ const createPost = async () => {
         <button class="btn" @click="showCreate = false">取消</button>
       </div>
       <div v-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>
-      <div style="color:var(--muted); font-size:12px;">提示：需登录后创建文章将记录作者。</div>
+      <div style="color:var(--muted); font-size:12px;">提示：需登录后创建文章</div>
     </div>
   </div>
 </template>
