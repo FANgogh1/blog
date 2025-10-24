@@ -50,7 +50,7 @@ onMounted(() => {
     <div v-if="!loading && !items.length" style="color:var(--muted);">暂无通知</div>
     <ul v-else style="display:grid; gap:8px; list-style:none; padding:0; margin:0;">
       <li v-for="n in items" :key="n.id" class="card" style="padding:12px; display:flex; align-items:center; gap:8px;">
-        <router-link :to="{ name: 'post', params: { id: n.post_id } }" style="display:flex; align-items:center; gap:8px; flex:1; text-decoration:none; color:inherit;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
           <span :style="{ color: n.type==='comment' ? '#2b9e6e' : '#1f7aec', fontWeight: 600 }">
             {{ n.type==='comment' ? '评论' : '点赞' }}
           </span>
@@ -64,7 +64,7 @@ onMounted(() => {
           <span style="color:var(--muted);">文章：{{ n.post_title || ('#' + n.post_id) }}</span>
           <span v-if="n.content" style="color:var(--text);">内容：{{ n.content }}</span>
           <span style="margin-left:auto; font-size:12px; color:var(--muted);">{{ new Date(n.created_at).toLocaleString() }}</span>
-        </router-link>
+        </div>
         <router-link class="btn" :to="{ name: 'post', params: { id: n.post_id } }">前往文章</router-link>
         <button class="btn" v-if="!n.read" @click="markRead(n)">标记已读</button>
       </li>

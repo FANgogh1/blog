@@ -68,8 +68,15 @@ const doSearch = () => {
     <div class="navbar-inner">
       <router-link to="/" class="brand">FlatBlog</router-link>
       <div class="nav-center" style="flex:1; display:flex; justify-content:center; align-items:center; gap:8px;">
-        <input class="input" v-model="searchQuery" placeholder="搜索博客标题..." @keyup.enter="doSearch" style="min-width:280px;" />
-        <button class="btn" @click="doSearch">搜索</button>
+        <div style="position:relative; min-width:280px;">
+          <input class="input" v-model="searchQuery" placeholder="搜索博客标题..." @keyup.enter="doSearch" style="padding-right:36px; width:100%;" />
+          <button class="btn" @click="doSearch" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="nav" style="margin-left:auto; display:flex; align-items:center; gap:12px;">
         <router-link to="/">首页</router-link>

@@ -69,16 +69,26 @@ onMounted(fetchHot);
     <div v-else-if="!items.length" style="color:var(--muted);">暂无数据</div>
 
     <div v-else class="grid cols-3">
-      <article v-for="it in items" :key="it.post.id" class="card" style="padding:16px;">
+      <router-link v-for="it in items" :key="it.post.id" class="card" :to="{ name: 'post', params: { id: it.post.id } }" style="padding:16px; text-decoration:none; color:inherit; display:block;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
           <span class="badge" style="background:var(--primary); color:#fff; padding:2px 8px; border-radius:999px; font-size:12px;">
             获赞数{{ it.likeCount }}
           </span>
         </div>
         <h3 style="margin:0 0 8px;">{{ it.post.title }}</h3>
+        <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
+          <img v-if="it.post.author_avatar" :src="it.post.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+          <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+            {{ (it.post.author_name || '匿名').slice(0,1).toUpperCase() }}
+          </div>
+          <span>{{ it.post.author_name || '匿名' }}</span>
+          <span style="margin-left:auto; font-size:12px;">{{ it.post.created_at ? new Date(it.post.created_at).toLocaleString() : '' }}</span>
+        </div>
         <p style="color:var(--muted); margin:0 0 12px;">{{ (it.post.content || '').replace(/<[^>]+>/g, '')?.slice(0, 80) }}</p>
-        <router-link class="btn primary" :to="{ name: 'post', params: { id: it.post.id } }">查看详情</router-link>
-      </article>
+        <div style="display:flex; gap:8px;">
+          <span class="btn primary" style="pointer-events:none;">查看详情</span>
+        </div>
+      </router-link>
     </div>
   </div>
 </template>

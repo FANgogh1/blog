@@ -38,11 +38,11 @@ watch(() => route.query.q, (val) => { q.value = val ? String(val) : ''; search()
     <div v-else-if="!results.length" style="color:var(--muted);">未找到相关博客</div>
 
     <div v-else class="grid cols-3">
-      <article v-for="p in results" :key="p.id" class="card" style="padding:16px;">
+      <router-link v-for="p in results" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:block;">
         <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
         <p style="color:var(--muted); margin:0 0 12px;">{{ (p.content || '').replace(/<[^>]+>/g, '')?.slice(0, 80) }}</p>
-        <router-link class="btn primary" :to="{ name: 'post', params: { id: p.id } }">查看详情</router-link>
-      </article>
+        <span class="btn primary" style="pointer-events:none;">查看详情</span>
+      </router-link>
     </div>
   </div>
 </template>
