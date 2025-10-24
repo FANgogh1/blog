@@ -62,7 +62,7 @@ onMounted(fetchHot);
 <template>
   <div>
     <h2 style="margin:0 0 16px;">热榜</h2>
-    <div style="color:var(--muted); margin-bottom:12px;">按点赞数量排行</div>
+    <div style="color:var(--muted); margin-bottom:12px;">注：排行依据博客点赞数量</div>
 
     <div v-if="loading" style="color:var(--muted);">加载中...</div>
     <div v-else-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>
@@ -72,7 +72,7 @@ onMounted(fetchHot);
       <article v-for="it in items" :key="it.post.id" class="card" style="padding:16px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
           <span class="badge" style="background:var(--primary); color:#fff; padding:2px 8px; border-radius:999px; font-size:12px;">
-            赞 {{ it.likeCount }}
+            获赞数{{ it.likeCount }}
           </span>
         </div>
         <h3 style="margin:0 0 8px;">{{ it.post.title }}</h3>

@@ -19,7 +19,7 @@ const onSubmit = async () => {
     errorMsg.value = error.message || '登录失败';
     return;
   }
-  router.push({ name: 'profile' });
+  router.push({ name: 'home' });
 };
 </script>
 

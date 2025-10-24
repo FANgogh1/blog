@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { supabase } from './lib/supabase';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const currentUser = ref(null);
+const unreadCount = ref(0);
 
 const loadUser = async () => {
   const { data, error } = await supabase.auth.getUser();
@@ -13,10 +14,33 @@ const loadUser = async () => {
 
 onMounted(async () => {
   await loadUser();
+  await fetchUnreadCount();
   supabase.auth.onAuthStateChange((_event, _session) => {
     loadUser();
+    fetchUnreadCount();
   });
 });
+
+onMounted(() => {
+  window.addEventListener('refresh-unread', fetchUnreadCount);
+});
+onUnmounted(() => {
+  window.removeEventListener('refresh-unread', fetchUnreadCount);
+});
+
+const fetchUnreadCount = async () => {
+  try {
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes?.user?.id || userRes?.data?.user?.id || null;
+    if (!uid) { return; }
+    const { count } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient', uid)
+      .eq('read', false);
+    if (typeof count === 'number') unreadCount.value = count;
+  } catch (_) { /* noop */ }
+};
 
 const displayName = () =>
   currentUser.value?.user_metadata?.nickname ||
@@ -51,6 +75,9 @@ const doSearch = () => {
         <router-link to="/">首页</router-link>
         <router-link to="/hot">热榜</router-link>
         <router-link to="/my">我的博客</router-link>
+        <router-link to="/notifications" style="position:relative;">通知
+          <span v-if="unreadCount>0" class="badge">{{ unreadCount }}</span>
+        </router-link>
 
         <!-- 登录态：头像+昵称（点击进个人中心） + 退出 -->
         <template v-if="currentUser">
@@ -82,4 +109,5 @@ const doSearch = () => {
 
 <style scoped>
 /* 导航右侧元素对齐由内联样式控制 */
+.badge { position:absolute; top:-6px; right:-10px; background:#ff4d4f; color:#fff; border-radius:10px; padding:0 6px; font-size:12px; line-height:18px; min-width:18px; text-align:center; }
 </style>

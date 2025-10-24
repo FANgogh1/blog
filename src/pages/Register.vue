@@ -23,6 +23,7 @@ const onSubmit = async () => {
     errorMsg.value = error.message || '注册失败';
     return;
   }
+  await supabase.auth.signOut();
   infoMsg.value = '注册成功，请前往邮箱验证后登录';
   router.push({ name: 'login' });
 };

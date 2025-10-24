@@ -72,6 +72,14 @@ const like = async () => {
     return;
   }
   // 点赞：插入记录
+  const { data: userRes2 } = await supabase.auth.getUser();
+  const me = userRes2?.user || userRes2?.data?.user;
+  const meta2 = me?.user_metadata || {};
+  const actor_name2 = (meta2.nickname && meta2.nickname.trim())
+    || (meta2.full_name && meta2.full_name.trim())
+    || (meta2.name && meta2.name.trim())
+    || me?.email;
+  const actor_avatar2 = meta2.avatar_url || meta2.picture || '';
   const { error } = await supabase
     .from('post_likes')
     .insert([{ post_id: id.value, user_id: userId }]);
@@ -82,6 +90,15 @@ const like = async () => {
   }
   liked.value = true;
   likeCount.value += 1;
+  // 通知文章作者（点赞）
+  try {
+    const { data: postRes } = await supabase.from('posts').select('author,title').eq('id', id.value).single();
+    const recipient = postRes?.author || null;
+    const post_title = postRes?.title || '';
+    if (recipient && recipient !== userId) {
+      await supabase.from('notifications').insert([{ recipient, actor: userId, post_id: id.value, type: 'like', actor_name: actor_name2, actor_avatar: actor_avatar2, post_title }]);
+    }
+  } catch (_) {}
 }
 
 /* 评论：使用 Supabase 后端 */
@@ -132,6 +149,22 @@ const addComment = async () => {
   if (error) {
     commentError.value = error.message || '发表评论失败';
     return;
+  }
+  // 通知文章作者（包含评论内容摘要）
+  try {
+    const { data: postRes } = await supabase.from('posts').select('author,title').eq('id', id.value).single();
+    const recipient = postRes?.author || null;
+    const post_title = postRes?.title || '';
+    if (recipient && recipient !== user.id) {
+      const { error: nErr } = await supabase.from('notifications').insert([{ recipient, actor: user.id, post_id: id.value, type: 'comment', content: content.slice(0, 140), actor_name: author_name, actor_avatar: author_avatar, post_title }]);
+      if (nErr) {
+        console.error('notify insert failed', nErr);
+      } else {
+        window.dispatchEvent(new CustomEvent('refresh-unread'));
+      }
+    }
+  } catch (e) {
+    console.error('notify error', e);
   }
   newComment.value = '';
   await fetchComments(id.value);
@@ -265,9 +298,9 @@ onMounted(async () => {
 
     <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px;">
       <button class="btn primary" :disabled="likeLoading" @click="like">
-        {{ likeLoading ? '处理中...' : (liked ? '取消点赞' : '点赞 👍') }}
+        {{ likeLoading ? '处理中...' : (liked ? '取消点赞' : ' 点赞') }}
       </button>
-      <span style="color:var(--muted);">赞数：{{ likeCount }}</span>
+      <span style="color:var(--muted);">获赞数：{{ likeCount }}</span>
       <span v-if="likeError" style="color:#ff6b6b;">{{ likeError }}</span>
     </div>
 

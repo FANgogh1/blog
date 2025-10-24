@@ -108,7 +108,7 @@ const createPost = async () => {
   </div>
 
   <div class="grid cols-3">
-    <article v-for="p in posts" :key="p.id" class="card" style="padding:16px;">
+    <router-link v-for="p in posts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:block;">
       <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
       <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
         <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
@@ -118,9 +118,11 @@ const createPost = async () => {
         <span>{{ p.author_name || '匿名' }}</span>
         <span style="margin-left:auto; font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
       </div>
-      <p style="color:var(--muted); margin:0 0 12px;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
-      <router-link class="btn primary" :to="{ name: 'post', params: { id: p.id } }">阅读详情</router-link>
-    </article>
+      <p style="color:var(--muted); margin:0;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <span class="btn" style="pointer-events:none;">阅读详情</span>
+      </div>
+    </router-link>
   </div>
 
   <!-- 悬浮新增按钮 -->
