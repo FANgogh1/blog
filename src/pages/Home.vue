@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import MarkdownIt from 'markdown-it';
@@ -29,6 +29,23 @@ const fetchPosts = async () => {
 };
 
 onMounted(fetchPosts);
+
+const selectedDate = ref('');
+const toYYYYMMDD = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+};
+const filteredPosts = computed(() => {
+  if (!selectedDate.value) return posts.value;
+  return (posts.value || []).filter(p => {
+    if (!p.created_at) return false;
+    try {
+      return toYYYYMMDD(new Date(p.created_at)) === selectedDate.value;
+    } catch { return false; }
+  });
+});
 
 // 首页轮播图（从 Supabase Storage:banners/home 读取）
 const banners = ref([]);
@@ -107,22 +124,38 @@ const createPost = async () => {
     </div>
   </div>
 
-  <div class="grid cols-3">
-    <router-link v-for="p in posts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:block;">
-      <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
-      <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
-        <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-        <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
-          {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+  <div style="display:grid; grid-template-columns: 240px 1fr; gap:16px; align-items:start;">
+    <!-- 左侧：日历筛选 -->
+    <div class="card" style="padding:12px;">
+      <div style="font-weight:600; margin-bottom:8px;">按日期筛选</div>
+      <input class="input" type="date" v-model="selectedDate" />
+      <div style="color:var(--muted); font-size:12px; margin-top:8px;">
+        已选：{{ selectedDate || '未选择（显示全部）' }}
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn" @click="selectedDate = ''">清除筛选</button>
+        <button class="btn" @click="selectedDate = toYYYYMMDD(new Date())">今天</button>
+      </div>
+    </div>
+
+    <!-- 右侧：文章列表 -->
+    <div class="grid cols-3">
+      <router-link v-for="p in filteredPosts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
+        <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
+        <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
+          <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+          <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+            {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+          </div>
+          <span>{{ p.author_name || '匿名' }}</span>
+          <span style="margin-left:auto; font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
         </div>
-        <span>{{ p.author_name || '匿名' }}</span>
-        <span style="margin-left:auto; font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
-      </div>
-      <p style="color:var(--muted); margin:0;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
-      <div style="margin-top:12px; display:flex; gap:8px;">
-        <span class="btn" style="pointer-events:none;">阅读详情</span>
-      </div>
-    </router-link>
+        <p style="color:var(--muted); margin:0;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
+        <div style="margin-top:auto; display:flex; gap:8px;">
+          <span class="btn" style="pointer-events:none;">阅读详情</span>
+        </div>
+      </router-link>
+    </div>
   </div>
 
   <!-- 悬浮新增按钮 -->

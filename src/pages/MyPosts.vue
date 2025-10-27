@@ -42,10 +42,12 @@ onMounted(fetchMyPosts);
       <div v-if="errorMsg" style="color:#ff6b6b; margin-bottom:12px;">{{ errorMsg }}</div>
       <div v-if="!posts.length" style="color:var(--muted);">暂无文章</div>
       <div v-else class="grid cols-3">
-        <router-link v-for="p in posts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:block;">
+        <router-link v-for="p in posts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
           <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
-          <p style="color:var(--muted); margin:0 0 12px;">{{ (p.content || '').replace(/<[^>]+>/g, '')?.slice(0, 80) }}</p>
-          <span class="btn primary" style="pointer-events:none;">查看详情</span>
+          <p style="color:var(--muted); margin:0;">{{ (p.content || '').replace(/<[^>]+>/g, '')?.slice(0, 80) }}</p>
+          <div style="margin-top:auto; display:flex; gap:8px;">
+            <span class="btn primary" style="pointer-events:none;">查看详情</span>
+          </div>
         </router-link>
       </div>
     </div>
