@@ -7,6 +7,7 @@ const loading = ref(true);
 
 const form = ref({
   nickname: '',
+  bio: '',
   avatarFile: null,
   avatarPreview: ''
 });
@@ -27,6 +28,7 @@ onMounted(async () => {
 
   const meta = user.value?.user_metadata || {};
   form.value.nickname = meta.nickname || '';
+  form.value.bio = meta.bio || '';
   const url = meta.avatar_url || '';
   form.value.avatarPreview = url;
 });
@@ -69,6 +71,7 @@ const onSave = async () => {
     const { data, error } = await supabase.auth.updateUser({
       data: {
         nickname: form.value.nickname?.trim() || '',
+        bio: form.value.bio?.trim() || '',
         avatar_url: avatarUrl || ''
       }
     });
@@ -89,6 +92,7 @@ const cancelEdit = () => {
   if (!user.value) return;
   const meta = user.value.user_metadata || {};
   form.value.nickname = meta.nickname || '';
+  form.value.bio = meta.bio || '';
   form.value.avatarPreview = meta.avatar_url || '';
   form.value.avatarFile = null;
   errorMsg.value = '';
@@ -126,6 +130,7 @@ const logout = async () => {
         <div>
           <div style="font-weight:600;">{{ user.user_metadata?.nickname || '未设置昵称' }}</div>
           <div style="color:var(--muted); font-size:13px;">{{ user.email }}</div>
+          <div style="margin-top:8px; white-space:pre-wrap; color:var(--text);">{{ user.user_metadata?.bio || '尚未填写个人简介' }}</div>
         </div>
       </div>
 
@@ -138,6 +143,10 @@ const logout = async () => {
         <label>
           头像
           <input class="input" type="file" accept="image/*" @change="onPickAvatar" :disabled="!editMode" />
+        </label>
+        <label>
+          个人简介
+          <textarea class="input" v-model="form.bio" placeholder="用几句话介绍自己..." rows="4" :disabled="!editMode"></textarea>
         </label>
         <div style="display:flex; gap:8px; align-items:center;">
           <button class="btn" @click="editMode ? cancelEdit() : (editMode = true)">

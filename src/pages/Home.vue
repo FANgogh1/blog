@@ -159,4 +159,7 @@ const createPost = async () => {
 </template>
 
 <style scoped>
+.post-content { max-height: 280px; overflow: auto; padding-right: 8px; }
+/* 预览中图片等内容适配宽度 */
+.post-content :deep(img) { max-width: 100%; height: auto; }
 </style>

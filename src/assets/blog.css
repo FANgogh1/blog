@@ -163,3 +163,28 @@ a:hover { color: var(--primary-hover); }
 .post-content strong, .post-content b {
   font-weight: 700;
 }
+
+/* 亮色主题覆盖 */
+:root[data-theme='light'] {
+  --bg: #f7f9fc;
+  --bg-grad-1: #f7f9fc;
+  --bg-grad-2: #f2f5fa;
+  --bg-grad-3: #e9eef6;
+  --card: rgba(255, 255, 255, 0.9);
+  --card-solid: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6b7280;
+  --primary: #0ea5e9;
+  --primary-hover: #38bdf8;
+  --accent: #22d3a0;
+  --border: rgba(0, 0, 0, 0.12);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+:root[data-theme='light'] body {
+  background:
+    radial-gradient(1000px 500px at 10% 0%, rgba(14, 165, 233, 0.08), transparent 60%),
+    radial-gradient(1000px 500px at 90% 100%, rgba(34, 211, 238, 0.08), transparent 60%),
+    linear-gradient(160deg, var(--bg-grad-1), var(--bg-grad-2) 50%, var(--bg-grad-3));
+}
+:root[data-theme='light'] .btn.primary { color: #0a1a2a; }
+:root[data-theme='light'] .input { background: rgba(0,0,0,0.02); }
