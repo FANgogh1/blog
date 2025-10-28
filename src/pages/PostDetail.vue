@@ -422,7 +422,7 @@ onMounted(async () => {
       <div class="post-content" v-html="content"></div>
     </div>
 
-    <div v-else class="card" style="padding:12px; display:grid; gap:10px; margin-bottom:16px;">
+    <div v-else class="card" style="padding:12px; display:grid; gap:10px; margin-bottom:16px; max-height:85vh; overflow:auto;">
       <label>
         标题
         <input class="input" v-model="editForm.title" />
@@ -435,7 +435,7 @@ onMounted(async () => {
              theme="snow" 
              v-model:content="editForm.content" 
              contentType="html" 
-             style="height:280px;"
+             style="height:50vh; min-height:280px;"
              @paste="handlePaste"
              ref="quillEditorRef"
            />
@@ -443,7 +443,7 @@ onMounted(async () => {
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <label class="btn" style="cursor:pointer; margin:0;">
             <input type="file" accept="image/*" @change="uploadImage" style="display:none;" :disabled="uploadingImage" />
-            {{ uploadingImage ? '上传中...' : '📷 插入图片' }}
+            {{ uploadingImage ? '上传中...' : '插入图片' }}
           </label>
           <span v-if="imageUploadError" style="color:#ff6b6b; font-size:12px;">{{ imageUploadError }}</span>
         </div>

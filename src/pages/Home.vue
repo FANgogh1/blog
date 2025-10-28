@@ -302,18 +302,18 @@ const uploadImage = async (event) => {
         </div>
         <p style="color:var(--muted); margin:0;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
         <div style="margin-top:auto; display:flex; gap:8px;">
-          <span class="btn" style="pointer-events:none;">阅读详情</span>
+          <span class="btn" style="pointer-events:none;">查看详情</span>
         </div>
       </router-link>
     </div>
   </div>
 
   <!-- 悬浮新增按钮 -->
-  <button class="btn primary" style="position:fixed; right:24px; bottom:24px; z-index:30;" @click="showCreate = true">新增博客</button>
+  <button class="btn primary" style="position:fixed; right:24px; bottom:24px; z-index:30;" @click="showCreate = true">新建文章</button>
 
   <!-- 创建弹窗 -->
   <div v-if="showCreate" style="position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:40;">
-    <div class="card" style="width:600px; padding:16px; display:grid; gap:12px;">
+    <div class="card" style="width:720px; max-width:90vw; max-height:85vh; padding:16px; display:grid; gap:12px; overflow:auto;">
       <h3 style="margin:0;">新建文章</h3>
       <label>
         标题
@@ -326,7 +326,7 @@ const uploadImage = async (event) => {
             theme="snow" 
             v-model:content="form.content" 
             contentType="html" 
-            style="height:260px;"
+            style="height:50vh; min-height:260px;"
             @paste="handlePaste"
             ref="quillEditorRef"
           />
@@ -334,7 +334,7 @@ const uploadImage = async (event) => {
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <label class="btn" style="cursor:pointer; margin:0;">
             <input type="file" accept="image/*" @change="uploadImage" style="display:none;" :disabled="uploadingImage" />
-            {{ uploadingImage ? '上传中...' : '📷 插入图片' }}
+            {{ uploadingImage ? '上传中...' : '插入图片' }}
           </label>
           <span v-if="imageUploadError" style="color:#ff6b6b; font-size:12px;">{{ imageUploadError }}</span>
         </div>
@@ -407,6 +407,9 @@ const uploadImage = async (event) => {
 .editor-wrapper :deep(.ql-toolbar) {
   max-width: 100%;
   overflow-x: auto;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 /* 文章正文样式美化 */
