@@ -246,18 +246,20 @@ onMounted(async () => {
 </script>
 
 <template>
-  <article class="card" style="padding:20px;">
-    <h1 style="margin:0 0 8px;">{{ title }}</h1>
-    <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:12px;">
-      <img v-if="authorAvatar" :src="authorAvatar" alt="avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-      <div v-else style="width:28px; height:28px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
-        {{ (authorName || '匿名').slice(0,1).toUpperCase() }}
+  <article class="card article-header">
+    <div class="article-top">
+      <div class="article-info">
+        <h1 style="margin:0 0 8px;">{{ title }}</h1>
+        <div style="display:flex; align-items:center; gap:10px; color:var(--muted);">
+          <img v-if="authorAvatar" :src="authorAvatar" alt="avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+          <div v-else style="width:28px; height:28px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+            {{ (authorName || '匿名').slice(0,1).toUpperCase() }}
+          </div>
+          <span>{{ authorName || '匿名' }}</span>
+          <span style="font-size:12px;">{{ publishTime ? `发布于 ${publishTime}` : '' }} · 文章 ID：{{ id }}</span>
+        </div>
       </div>
-      <span>{{ authorName || '匿名' }}</span>
-      <span style="margin-left:auto; font-size:12px;">{{ publishTime ? `发布于 ${publishTime}` : '' }} · 文章 ID：{{ id }}</span>
-    </div>
-    <div style="margin:12px 0;">
-      <router-link class="btn" to="/">返回首页</router-link>
+      <router-link class="btn" to="/" style="flex-shrink:0;">返回首页</router-link>
     </div>
     <!-- 编辑操作：仅作者可见 -->
     <div v-if="ownPost" style="display:flex; gap:8px; margin-bottom:12px;">
@@ -266,8 +268,7 @@ onMounted(async () => {
     </div>
 
     <!-- 内容/编辑表单 -->
-    <div v-if="!editMode" class="card" style="padding:12px; margin-bottom:16px;">
-      <div style="font-weight:600; margin-bottom:6px;">正文</div>
+    <div v-if="!editMode" style="margin-bottom:16px;">
       <div class="post-content" v-html="content"></div>
     </div>
 
@@ -279,14 +280,9 @@ onMounted(async () => {
 
       <div>
         <div style="font-weight:600; margin-bottom:6px;">内容</div>
-        <div class="card" style="padding:0; overflow:visible;">
+        <div class="card editor-wrapper" style="padding:0; overflow:visible;">
           <QuillEditor theme="snow" v-model:content="editForm.content" contentType="html" style="height:280px;" />
         </div>
-      </div>
-
-      <div class="card" style="padding:12px;">
-        <div style="font-weight:600; margin-bottom:6px;">预览</div>
-        <div class="post-content" v-html="editForm.content"></div>
       </div>
 
       <div style="display:flex; gap:8px; align-items:center;">
@@ -331,3 +327,292 @@ onMounted(async () => {
     </div>
   </article>
 </template>
+
+<style scoped>
+/* 编辑器样式 - 固定宽度并自动换行 */
+.editor-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.editor-wrapper :deep(.ql-container) {
+  font-size: 14px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.editor-wrapper :deep(.ql-editor) {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: hidden;
+}
+
+.editor-wrapper :deep(.ql-editor p),
+.editor-wrapper :deep(.ql-editor h1),
+.editor-wrapper :deep(.ql-editor h2),
+.editor-wrapper :deep(.ql-editor h3),
+.editor-wrapper :deep(.ql-editor h4),
+.editor-wrapper :deep(.ql-editor h5),
+.editor-wrapper :deep(.ql-editor h6),
+.editor-wrapper :deep(.ql-editor li),
+.editor-wrapper :deep(.ql-editor div),
+.editor-wrapper :deep(.ql-editor span) {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: block;
+  box-sizing: border-box;
+}
+
+/* 防止单行文本溢出 */
+.editor-wrapper :deep(.ql-editor) * {
+  max-width: 100% !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  hyphens: auto;
+}
+
+/* 编辑器工具栏 */
+.editor-wrapper :deep(.ql-toolbar) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 文章头部布局 */
+.article-header {
+  padding: 20px;
+}
+
+.article-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.article-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 响应式布局 - 移动端时按钮换行 */
+@media (max-width: 640px) {
+  .article-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .article-top .btn {
+    width: 100%;
+  }
+}
+
+/* 文章正文样式美化 */
+.post-content {
+  padding: 20px;
+  background: rgba(18, 22, 30, 0.3);
+  border-radius: 12px;
+  line-height: 1.8;
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* 白天模式背景色 */
+:root[data-theme='light'] .post-content {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* 确保预览中图片等内容适配宽度 */
+.post-content :deep(img) { 
+  max-width: 100%; 
+  height: auto; 
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+/* 正文中链接样式 */
+.post-content :deep(a) {
+  color: var(--primary);
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.post-content :deep(a:hover) {
+  color: var(--primary-hover);
+}
+
+/* 标题样式 */
+.post-content :deep(h1),
+.post-content :deep(h2),
+.post-content :deep(h3),
+.post-content :deep(h4),
+.post-content :deep(h5),
+.post-content :deep(h6) {
+  margin: 24px 0 12px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.post-content :deep(p) {
+  margin: 12px 0;
+}
+
+/* 代码块样式 */
+.post-content :deep(code) {
+  background: rgba(0, 232, 132, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+}
+
+.post-content :deep(pre) {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.post-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
+}
+
+/* 白天模式代码块和行内代码背景 */
+:root[data-theme='light'] .post-content :deep(pre) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme='light'] .post-content :deep(code) {
+  background: rgba(14, 165, 233, 0.1);
+}
+
+/* 引用块样式 */
+.post-content :deep(blockquote) {
+  border-left: 3px solid var(--primary);
+  padding-left: 16px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* 白天模式引用块颜色 */
+:root[data-theme='light'] .post-content :deep(blockquote) {
+  color: #4a5568;
+}
+
+/* 列表样式 */
+.post-content :deep(ul),
+.post-content :deep(ol) {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.post-content :deep(li) {
+  margin: 6px 0;
+}
+
+/* 表格样式 */
+.post-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.post-content :deep(th),
+.post-content :deep(td) {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.post-content :deep(th) {
+  background: rgba(0, 232, 132, 0.1);
+  font-weight: 600;
+}
+
+/* 水平分隔线 */
+.post-content :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+/* 编辑模式预览样式（带滚动限制） */
+.post-content-preview {
+  padding: 20px;
+  background: rgba(18, 22, 30, 0.3);
+  border-radius: 12px;
+  line-height: 1.8;
+  color: var(--text);
+  font-size: 15px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+/* 白天模式预览背景色 */
+:root[data-theme='light'] .post-content-preview {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.post-content-preview :deep(img) { 
+  max-width: 100%; 
+  height: auto; 
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.post-content-preview :deep(a) {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.post-content-preview :deep(h1),
+.post-content-preview :deep(h2),
+.post-content-preview :deep(h3),
+.post-content-preview :deep(h4),
+.post-content-preview :deep(h5),
+.post-content-preview :deep(h6) {
+  margin: 24px 0 12px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.post-content-preview :deep(p) {
+  margin: 12px 0;
+}
+
+.post-content-preview :deep(code) {
+  background: rgba(0, 232, 132, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.post-content-preview :deep(pre) {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+/* 白天模式预览代码块背景 */
+:root[data-theme='light'] .post-content-preview :deep(pre) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme='light'] .post-content-preview :deep(code) {
+  background: rgba(14, 165, 233, 0.1);
+}
+</style>
