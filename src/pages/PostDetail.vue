@@ -19,6 +19,8 @@ const editForm = ref({ title: '', content: '' });
 const editSaving = ref(false);
 const editError = ref('');
 const deleteLoading = ref(false);
+const uploadingImage = ref(false);
+const imageUploadError = ref('');
 
 /* 点赞：使用 Supabase 后端 */
 const likeCount = ref(0);
@@ -212,6 +214,75 @@ const onDeleteComment = async (c) => {
   await fetchComments(id.value);
 };
 
+// 上传图片到 Supabase Storage
+const uploadImage = async (event) => {
+  imageUploadError.value = '';
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    imageUploadError.value = '请选择图片文件';
+    return;
+  }
+
+  // 检查文件大小（限制为 5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    imageUploadError.value = '图片大小不能超过 5MB';
+    return;
+  }
+
+  uploadingImage.value = true;
+
+  try {
+    // 获取当前用户信息
+    const { data: userRes } = await supabase.auth.getUser();
+    const userId = userRes?.user?.id || userRes?.data?.user?.id;
+    if (!userId) {
+      imageUploadError.value = '请先登录';
+      uploadingImage.value = false;
+      return;
+    }
+
+    // 生成唯一文件名
+    const fileName = `${userId}_${Date.now()}_${file.name}`;
+    const filePath = `post-images/${fileName}`;
+
+    // 上传到 Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true // 改为 true，允许覆盖同名文件
+      });
+
+    if (uploadError) {
+      imageUploadError.value = uploadError.message || '上传失败：' + (uploadError.error || JSON.stringify(uploadError));
+      uploadingImage.value = false;
+      console.error('Upload error details:', uploadError);
+      return;
+    }
+
+    // 获取图片的公开 URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(filePath);
+
+    // 插入图片到编辑器
+    const imgTag = `<img src="${publicUrl}" alt="上传的图片" style="max-width: 100%;" />`;
+    editForm.value.content = (editForm.value.content || '') + imgTag;
+
+    imageUploadError.value = '';
+  } catch (err) {
+    imageUploadError.value = '上传失败，请重试';
+    console.error('Upload error:', err);
+  } finally {
+    uploadingImage.value = false;
+    // 清空 input 值，以便再次选择同一文件
+    event.target.value = '';
+  }
+};
+
 onMounted(async () => {
   const { data, error } = await supabase.from('posts').select('*').eq('id', id.value).single();
   if (!error && data) {
@@ -282,6 +353,13 @@ onMounted(async () => {
         <div style="font-weight:600; margin-bottom:6px;">内容</div>
         <div class="card editor-wrapper" style="padding:0; overflow:visible;">
           <QuillEditor theme="snow" v-model:content="editForm.content" contentType="html" style="height:280px;" />
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label class="btn" style="cursor:pointer; margin:0;">
+            <input type="file" accept="image/*" @change="uploadImage" style="display:none;" :disabled="uploadingImage" />
+            {{ uploadingImage ? '上传中...' : '📷 插入图片' }}
+          </label>
+          <span v-if="imageUploadError" style="color:#ff6b6b; font-size:12px;">{{ imageUploadError }}</span>
         </div>
       </div>
 
