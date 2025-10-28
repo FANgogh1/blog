@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { supabase } from '../lib/supabase';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
+import Quill from 'quill';
 
 const route = useRoute();
 const id = computed(() => String(route.params.id));
@@ -21,6 +22,84 @@ const editError = ref('');
 const deleteLoading = ref(false);
 const uploadingImage = ref(false);
 const imageUploadError = ref('');
+const quillEditorRef = ref(null);
+
+// 处理粘贴事件
+const handlePaste = async (event) => {
+  const clipboardData = event.clipboardData || event.clipboardData;
+  const items = clipboardData?.items;
+
+  if (!items) return;
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    
+    // 检查是否是图片
+    if (item.type.indexOf('image') !== -1) {
+      event.preventDefault();
+      
+      const blob = item.getAsFile();
+      if (!blob) continue;
+
+      // 上传图片
+      await uploadImageFromBlob(blob);
+      break;
+    }
+  }
+};
+
+// 从 Blob 上传图片
+const uploadImageFromBlob = async (blob) => {
+  imageUploadError.value = '';
+  imageUploading.value = true;
+
+  try {
+    const { data: userRes } = await supabase.auth.getUser();
+    const userId = userRes?.user?.id || userRes?.data?.user?.id;
+    if (!userId) {
+      imageUploadError.value = '请先登录';
+      imageUploading.value = false;
+      return;
+    }
+
+    const fileName = `${userId}_${Date.now()}_paste.png`;
+    const filePath = `post-images/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) {
+      imageUploadError.value = '图片上传失败';
+      console.error('Upload error:', uploadError);
+      imageUploading.value = false;
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(filePath);
+
+    // 插入图片到编辑器
+    if (quillEditorRef.value) {
+      const editor = quillEditorRef.value.getQuill();
+      const range = editor.getSelection();
+      editor.insertEmbed(range?.index || 0, 'image', publicUrl);
+    }
+
+    imageUploadError.value = '';
+  } catch (err) {
+    imageUploadError.value = '上传失败，请重试';
+    console.error('Upload error:', err);
+  } finally {
+    imageUploading.value = false;
+  }
+};
+
+const imageUploading = ref(false);
 
 /* 点赞：使用 Supabase 后端 */
 const likeCount = ref(0);
@@ -349,11 +428,18 @@ onMounted(async () => {
         <input class="input" v-model="editForm.title" />
       </label>
 
-      <div>
-        <div style="font-weight:600; margin-bottom:6px;">内容</div>
-        <div class="card editor-wrapper" style="padding:0; overflow:visible;">
-          <QuillEditor theme="snow" v-model:content="editForm.content" contentType="html" style="height:280px;" />
-        </div>
+       <div>
+         <div style="font-weight:600; margin-bottom:6px;">内容</div>
+         <div class="card editor-wrapper" style="padding:0; overflow:visible;">
+           <QuillEditor 
+             theme="snow" 
+             v-model:content="editForm.content" 
+             contentType="html" 
+             style="height:280px;"
+             @paste="handlePaste"
+             ref="quillEditorRef"
+           />
+         </div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <label class="btn" style="cursor:pointer; margin:0;">
             <input type="file" accept="image/*" @change="uploadImage" style="display:none;" :disabled="uploadingImage" />
