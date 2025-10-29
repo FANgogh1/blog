@@ -107,7 +107,7 @@ const logout = async () => {
 </script>
 
 <template>
-  <div class="card" style="max-width:760px; margin:0 auto; padding:20px;">
+  <div class="card" style="max-width:960px; margin:0 auto; padding:30px;">
     <h2 style="margin:0 0 16px;">个人中心</h2>
 
     <div v-if="loading" style="color:var(--muted);">加载中...</div>
@@ -118,20 +118,24 @@ const logout = async () => {
 
     <div v-else style="display:grid; gap:16px;">
       <!-- 头像与基础信息 -->
-      <div style="display:flex; align-items:center; gap:16px;">
-        <div style="position:relative;">
-          <img v-if="form.avatarPreview" :src="form.avatarPreview" alt="avatar"
-               style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-          <div v-else
-               style="width:80px; height:80px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:700;">
-            {{ (user.user_metadata?.nickname || user.email || 'U').slice(0,1).toUpperCase() }}
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="position:relative;">
+            <img v-if="form.avatarPreview" :src="form.avatarPreview" alt="avatar"
+                 style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+            <div v-else
+                 style="width:80px; height:80px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:700;">
+              {{ (user.user_metadata?.nickname || user.email || 'U').slice(0,1).toUpperCase() }}
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:600;">{{ user.user_metadata?.nickname || '未设置昵称' }}</div>
+            <div style="color:var(--muted); font-size:13px;">{{ user.email }}</div>
+            <div style="margin-top:8px; white-space:pre-wrap; color:var(--text);">{{ user.user_metadata?.bio || '尚未填写个人简介' }}</div>
           </div>
         </div>
-        <div>
-          <div style="font-weight:600;">{{ user.user_metadata?.nickname || '未设置昵称' }}</div>
-          <div style="color:var(--muted); font-size:13px;">{{ user.email }}</div>
-          <div style="margin-top:8px; white-space:pre-wrap; color:var(--text);">{{ user.user_metadata?.bio || '尚未填写个人简介' }}</div>
-        </div>
+        <!-- 退出登录按钮 - 与头像高度一致 -->
+        <button class="btn" @click="logout" style="align-self:flex-start;">退出登录</button>
       </div>
 
       <!-- 编辑表单 -->
@@ -146,7 +150,7 @@ const logout = async () => {
         </label>
         <label>
           个人简介
-          <textarea class="input" v-model="form.bio" placeholder="用几句话介绍自己..." rows="4" :disabled="!editMode"></textarea>
+          <textarea class="input" v-model="form.bio" placeholder="用几句话介绍自己..." rows="4" :disabled="!editMode" style="resize: none;"></textarea>
         </label>
         <div style="display:flex; gap:8px; align-items:center;">
           <button class="btn" @click="editMode ? cancelEdit() : (editMode = true)">
@@ -155,8 +159,6 @@ const logout = async () => {
           <button class="btn primary" :disabled="saving || !editMode" @click="onSave">
             {{ saving ? '保存中...' : '保存资料' }}
           </button>
-          <router-link class="btn" to="/">返回首页</router-link>
-          <button class="btn" @click="logout">退出登录</button>
         </div>
         <div v-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>
         <div v-if="successMsg" style="color:#18c37a;">{{ successMsg }}</div>
