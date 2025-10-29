@@ -548,7 +548,7 @@ onMounted(async () => {
 /* 编辑器工具栏 */
 .editor-wrapper :deep(.ql-toolbar) {
   max-width: 100%;
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 /* 文章头部布局 */

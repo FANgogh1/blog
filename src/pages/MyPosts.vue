@@ -45,7 +45,8 @@ onMounted(fetchMyPosts);
         <router-link v-for="p in posts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
           <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
           <p style="color:var(--muted); margin:0;">{{ (p.content || '').replace(/<[^>]+>/g, '')?.slice(0, 80) }}</p>
-          <div style="margin-top:auto; display:flex; gap:8px;">
+          <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--muted); font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
             <span class="btn primary" style="pointer-events:none;">查看详情</span>
           </div>
         </router-link>

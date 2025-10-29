@@ -313,20 +313,20 @@ const uploadImage = async (event) => {
 
   <!-- 创建弹窗 -->
   <div v-if="showCreate" style="position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:40;">
-    <div class="card" style="width:720px; max-width:90vw; max-height:85vh; padding:16px; display:grid; gap:12px; overflow:auto;">
-      <h3 style="margin:0;">新建文章</h3>
-      <label>
+    <div class="card" style="width:900px; max-width:95vw; max-height:95vh; padding:20px; display:grid; gap:16px; overflow:hidden;">
+      <h3 style="margin:0; font-size:24px;">新建文章</h3>
+      <label style="font-size:16px;">
         标题
-        <input class="input" v-model="form.title" placeholder="请输入标题" />
+        <input class="input" v-model="form.title" placeholder="请输入标题" style="font-size:16px; padding:12px;" />
       </label>
       <div>
-        <div style="font-weight:600; margin-bottom:6px;">内容</div>
+        <div style="font-weight:600; margin-bottom:8px; font-size:16px;">内容</div>
         <div class="card editor-wrapper" style="padding:0; overflow:visible;">
           <QuillEditor 
             theme="snow" 
             v-model:content="form.content" 
             contentType="html" 
-            style="height:50vh; min-height:260px;"
+            style="height:50vh; min-height:400px;"
             @paste="handlePaste"
             ref="quillEditorRef"
           />
@@ -340,12 +340,15 @@ const uploadImage = async (event) => {
         </div>
       </div>
 
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button class="btn primary" :disabled="saving" @click="createPost">{{ saving ? '创建中...' : '创建' }}</button>
+      <!-- 按钮区域 - 右上角 -->
+      <div style="position:absolute; top:20px; right:20px; display:flex; gap:8px; align-items:center;">
         <button class="btn" @click="showCreate = false">取消</button>
+        <button class="btn primary" :disabled="saving" @click="createPost">{{ saving ? '创建中...' : '创建' }}</button>
       </div>
-      <div v-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>
-      <div style="color:var(--muted); font-size:12px;">提示：需登录后创建文章</div>
+      
+      <!-- 错误信息和提示信息 -->
+      <div v-if="errorMsg" style="color:#ff6b6b; margin-top:8px;">{{ errorMsg }}</div>
+      <div style="color:var(--muted); font-size:12px; margin-top:8px;">提示：需登录后创建文章</div>
     </div>
   </div>
 </template>
@@ -406,7 +409,7 @@ const uploadImage = async (event) => {
 /* 编辑器工具栏 */
 .editor-wrapper :deep(.ql-toolbar) {
   max-width: 100%;
-  overflow-x: auto;
+  overflow-x: visible;
   position: sticky;
   top: 0;
   z-index: 2;

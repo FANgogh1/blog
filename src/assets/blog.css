@@ -86,8 +86,13 @@ a:hover { color: var(--primary-hover); }
   position: absolute; inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  /* 霓虹微光边框 */
+  /* 霓虹微光边框 - 只在暗色模式下显示 */
   box-shadow: 0 0 0 1px rgba(0, 232, 132, 0.12), 0 0 12px rgba(0, 232, 132, 0.06) inset;
+}
+
+/* 在亮色模式下隐藏绿色边框 */
+:root[data-theme='light'] .card::before {
+  box-shadow: none;
 }
 .card:hover {
   box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 0 16px rgba(124,77,255,0.25);
