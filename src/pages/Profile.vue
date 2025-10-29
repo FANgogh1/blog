@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { supabase } from '../lib/supabase';
+import ContributionCalendar from '../components/ContributionCalendar.vue';
 
 const user = ref(null);
 const loading = ref(true);
@@ -164,6 +165,9 @@ const logout = async () => {
         <div v-if="successMsg" style="color:#18c37a;">{{ successMsg }}</div>
 
       </div>
+      
+      <!-- 贡献日历 -->
+      <ContributionCalendar v-if="user" :userId="user.id" />
     </div>
   </div>
 </template>
