@@ -24,21 +24,25 @@ const onSubmit = async () => {
 </script>
 
 <template>
-  <div class="card" style="max-width:420px; margin:0 auto; padding:20px;">
-    <h2 style="margin:0 0 16px;">登录</h2>
-    <div style="display:grid; gap:12px;">
-      <label>
-        邮箱
-        <input class="input" type="email" v-model="form.email" placeholder="youremail@example.com" />
-      </label>
-      <label>
-        密码
-        <input class="input" type="password" v-model="form.password" placeholder="请输入密码" />
-      </label>
-      <button class="btn primary" @click="onSubmit">登录</button>
-      <div v-if="errorMsg" style="color:#ff6b6b; margin-top:8px;">{{ errorMsg }}</div>
-      <div style="text-align:center; color:var(--muted);">
-        还没有账号？<router-link to="/register">去注册</router-link>
+  <div style="min-height:80vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="max-width:420px; width:100%; padding:30px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+      <h2 style="margin:0 0 24px; text-align:center; font-size:28px; font-weight:600;">登录</h2>
+      <div style="display:grid; gap:16px;">
+        <label style="display:grid; gap:6px;">
+          <span style="font-weight:500; color:var(--text);">邮箱</span>
+          <input class="input" type="email" v-model="form.email" placeholder="youremail@example.com" style="padding:12px; font-size:16px;" />
+        </label>
+        <label style="display:grid; gap:6px;">
+          <span style="font-weight:500; color:var(--text);">密码</span>
+          <input class="input" type="password" v-model="form.password" placeholder="请输入密码" style="padding:12px; font-size:16px;" />
+        </label>
+        <button class="btn primary" @click="onSubmit" style="padding:12px; font-size:16px; font-weight:500; margin-top:8px;">
+          {{ loading ? '登录中...' : '登录' }}
+        </button>
+        <div v-if="errorMsg" style="color:#ff6b6b; margin-top:8px; text-align:center; padding:8px; background:#fff5f5; border-radius:4px;">{{ errorMsg }}</div>
+        <div style="text-align:center; color:var(--muted); margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+          还没有账号？<router-link to="/register" style="color:var(--primary); font-weight:500;">去注册</router-link>
+        </div>
       </div>
     </div>
   </div>
