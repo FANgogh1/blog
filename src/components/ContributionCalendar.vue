@@ -290,11 +290,35 @@ watch(() => props.userId, (newUserId) => {
 
 <style scoped>
 .contribution-calendar {
-  background: var(--card-bg);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
   padding: 16px;
   margin-top: 20px;
+  position: relative;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.contribution-calendar::before {
+  content: "";
+  position: absolute; 
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* 霓虹微光边框 - 只在暗色模式下显示 */
+  box-shadow: 0 0 0 1px rgba(0, 232, 132, 0.12), 0 0 12px rgba(0, 232, 132, 0.06) inset;
+}
+
+/* 在亮色模式下隐藏绿色边框 */
+:root[data-theme='light'] .contribution-calendar::before {
+  box-shadow: none;
+}
+
+.contribution-calendar:hover {
+  box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 0 16px rgba(124,77,255,0.25);
+  transform: translateY(-1px);
 }
 
 .calendar-header {
@@ -375,7 +399,9 @@ watch(() => props.userId, (newUserId) => {
   height: 12px;
   border-radius: 2px;
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
 }
 
 .contribution-cell.current-year {
@@ -403,9 +429,69 @@ watch(() => props.userId, (newUserId) => {
 }
 
 .contribution-cell:hover {
-  transform: scale(1.2);
-  z-index: 1;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transform: scale(1.4);
+  z-index: 10;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 0 2px rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+}
+
+.contribution-cell.level-0:hover {
+  background-color: #d0d3d6;
+}
+
+.contribution-cell.level-1:hover {
+  background-color: #7ae28a;
+  box-shadow: 
+    0 4px 12px rgba(155, 233, 168, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.contribution-cell.level-2:hover {
+  background-color: #2ebd5b;
+  box-shadow: 
+    0 4px 12px rgba(64, 196, 99, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.contribution-cell.level-3:hover {
+  background-color: #269945;
+  box-shadow: 
+    0 4px 12px rgba(48, 161, 78, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.contribution-cell.level-4:hover {
+  background-color: #1a5c2d;
+  box-shadow: 
+    0 4px 12px rgba(33, 110, 57, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* 添加悬浮提示动画 */
+.contribution-cell::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.contribution-cell:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  bottom: 140%;
 }
 
 .legend {
@@ -427,6 +513,9 @@ watch(() => props.userId, (newUserId) => {
   width: 12px;
   height: 12px;
   border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
 }
 
 .legend-cell.level-0 { background-color: #ebedf0; }
@@ -434,6 +523,45 @@ watch(() => props.userId, (newUserId) => {
 .legend-cell.level-2 { background-color: #40c463; }
 .legend-cell.level-3 { background-color: #30a14e; }
 .legend-cell.level-4 { background-color: #216e39; }
+
+.legend-cell:hover {
+  transform: scale(1.3);
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.15),
+    0 0 0 2px rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  z-index: 5;
+}
+
+.legend-cell.level-0:hover { background-color: #d0d3d6; }
+.legend-cell.level-1:hover { background-color: #7ae28a; }
+.legend-cell.level-2:hover { background-color: #2ebd5b; }
+.legend-cell.level-3:hover { background-color: #269945; }
+.legend-cell.level-4:hover { background-color: #1a5c2d; }
+
+.legend-cell::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.legend-cell:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  bottom: 140%;
+}
 
 @media (max-width: 768px) {
   .stats {
