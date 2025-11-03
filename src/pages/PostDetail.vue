@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Quill from 'quill';
+import { useAISummary } from '../lib/dify';
 
 const route = useRoute();
 const id = computed(() => String(route.params.id));
@@ -23,6 +24,26 @@ const deleteLoading = ref(false);
 const uploadingImage = ref(false);
 const imageUploadError = ref('');
 const quillEditorRef = ref(null);
+
+// AI总结功能
+const { isSummarizing, summaryResult, summaryError, summarize, clearSummary } = useAISummary();
+const showSummary = ref(false);
+
+// 执行AI总结
+const handleAISummary = async () => {
+  try {
+    await summarize(content.value, title.value);
+    showSummary.value = true;
+  } catch (error) {
+    console.error('AI总结失败:', error);
+  }
+};
+
+// 关闭总结面板
+const closeSummary = () => {
+  showSummary.value = false;
+  clearSummary();
+};
 
 // 处理粘贴事件
 const handlePaste = async (event) => {
@@ -490,6 +511,38 @@ onMounted(async () => {
       </ul>
     </div>
   </article>
+
+  <!-- AI总结按钮 - 固定在文章右侧 -->
+  <div class="ai-summary-container">
+    <button 
+      class="ai-summary-btn" 
+      @click="handleAISummary" 
+      :disabled="isSummarizing"
+      :class="{ 'loading': isSummarizing }"
+    >
+      <span v-if="isSummarizing">🤖 总结中...</span>
+      <span v-else>🤖 AI总结</span>
+    </button>
+
+    <!-- AI总结结果面板 -->
+    <div v-if="showSummary" class="ai-summary-panel">
+      <div class="ai-summary-header">
+        <h3>🤖 AI文章总结</h3>
+        <button class="ai-summary-close" @click="closeSummary">×</button>
+      </div>
+      <div class="ai-summary-content">
+        <div v-if="summaryError" class="ai-summary-error">
+          {{ summaryError }}
+        </div>
+        <div v-else-if="summaryResult" class="ai-summary-text">
+          {{ summaryResult }}
+        </div>
+        <div v-else class="ai-summary-loading">
+          正在生成总结...
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -778,5 +831,129 @@ onMounted(async () => {
 
 :root[data-theme='light'] .post-content-preview :deep(code) {
   background: rgba(14, 165, 233, 0.1);
+}
+
+/* AI总结功能样式 */
+.ai-summary-container {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.ai-summary-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-summary-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.ai-summary-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ai-summary-btn.loading {
+  background: linear-gradient(135deg, #a8a8a8 0%, #7a7a7a 100%);
+}
+
+.ai-summary-panel {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 400px;
+  max-width: 90vw;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.ai-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.ai-summary-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ai-summary-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.ai-summary-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ai-summary-content {
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ai-summary-text {
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.ai-summary-error {
+  color: #ff6b6b;
+  text-align: center;
+  padding: 20px;
+}
+
+.ai-summary-loading {
+  text-align: center;
+  color: var(--muted);
+  padding: 20px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .ai-summary-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+  }
+  
+  .ai-summary-panel {
+    width: calc(100vw - 32px);
+    right: 0;
+  }
+  
+  .ai-summary-btn {
+    padding: 14px 22px;
+    font-size: 15px;
+  }
 }
 </style>

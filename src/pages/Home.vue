@@ -265,7 +265,7 @@ const uploadImage = async (event) => {
 
 <template>
   <!-- 首页轮播图（Storage） -->
-  <div v-if="banners.length" class="card" style="margin-bottom:16px; padding:0; overflow:hidden; position:relative; height:280px;">
+  <div v-if="banners.length" class="card" style="margin-bottom:16px; padding:0; overflow:hidden; position:relative; height: 300px;">
     <img :src="banners[curBanner]" alt="banner" style="width:100%; height:100%; object-fit:cover; display:block;" />
     <button class="btn" @click="prevBanner" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);">‹</button>
     <button class="btn" @click="nextBanner" style="position:absolute; right:12px; top:50%; transform:translateY(-50%);">›</button>

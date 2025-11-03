@@ -18,5 +18,13 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    proxy: {
+      '/api/dify': {
+        target: 'https://dify.aipfuture.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/dify/, ''),
+        secure: false,
+      }
+    }
   },
 })
