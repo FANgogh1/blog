@@ -6,6 +6,7 @@ defineProps({
     required: true,
   },
 })
+//变化一些样式
 </script>
 <template>
   <div class="greetings">
