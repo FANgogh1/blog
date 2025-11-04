@@ -7,6 +7,59 @@ import MarkdownIt from 'markdown-it';
 const md = new MarkdownIt();
 import { supabase } from '../lib/supabase';
 
+// Dify Chatflow 配置和初始化
+const initDifyChatbot = () => {
+  // 设置全局配置
+  window.difyChatbotConfig = {
+    token: 'VKyUIYdfnWlDpLJB',
+    baseUrl: 'https://dify.aipfuture.com',
+    inputs: {
+      // 可以在这里定义从开始节点的输入
+      // key 是变量名
+      // 例如：
+      // name: "NAME"
+    },
+    systemVariables: {
+      // user_id: '你可以在这里定义用户ID',
+      // conversation_id: '你可以在这里定义会话ID，必须是有效的UUID',
+    },
+    userVariables: {
+      // avatar_url: '你可以在这里定义用户头像URL',
+      // name: '你可以在这里定义用户名',
+    },
+  };
+
+  // 动态加载Dify脚本
+  const script = document.createElement('script');
+  script.src = 'https://dify.aipfuture.com/embed.min.js';
+  script.id = 'VKyUIYdfnWlDpLJB';
+  script.defer = true;
+  document.head.appendChild(script);
+
+  // 添加自定义样式
+  const style = document.createElement('style');
+  style.textContent = `
+    #dify-chatbot-bubble-button {
+      background-color: #1C64F2 !important;
+    }
+    #dify-chatbot-bubble-window {
+      width: 24rem !important;
+      height: 40rem !important;
+      position: fixed !important;
+      right: 20px !important;
+      bottom: 20px !important;
+      z-index: 1000 !important;
+    }
+    #dify-chatbot-bubble-window iframe {
+      position: fixed !important;
+      right: 20px !important;
+      bottom: 20px !important;
+      z-index: 1000 !important;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 const stripHtml = (html) => {
   if (!html) return '';
   return String(html).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
@@ -28,8 +81,6 @@ const fetchPosts = async () => {
   posts.value = error ? [] : (data || []);
   if (!posts.value?.length) posts.value = sample;
 };
-
-onMounted(fetchPosts);
 
 const selectedDate = ref('');
 const toYYYYMMDD = (d) => {
@@ -70,7 +121,13 @@ const fetchBanners = async () => {
     if (banners.value.length > 1) bannerTimer = setInterval(nextBanner, 5000);
   } catch {}
 };
-onMounted(fetchBanners);
+
+// 在组件挂载时初始化所有功能
+onMounted(() => {
+  fetchPosts();
+  fetchBanners();
+  initDifyChatbot();
+});
 
 /* 创建文章表单 */
 const showCreate = ref(false);
@@ -332,7 +389,7 @@ const uploadImage = async (event) => {
   </div>
 
   <!-- 悬浮新增按钮 -->
-  <button class="btn primary" style="position:fixed; right:24px; bottom:24px; z-index:30;" @click="showCreate = true">新建文章</button>
+  <button class="btn primary" style="position:fixed; left:24px; bottom:24px; z-index:30;" @click="showCreate = true">新建文章</button>
 
   <!-- 创建弹窗 -->
   <div v-if="showCreate" style="position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:40;">
@@ -374,6 +431,8 @@ const uploadImage = async (event) => {
       <div style="color:var(--muted); font-size:12px; margin-top:8px;">提示：需登录后创建文章</div>
     </div>
   </div>
+  <!-- Dify Chatflow 聊天机器人 -->
+  <div id="dify-chatbot-container" style="position: fixed; right: 20px; bottom: 20px; z-index: 1000;"></div>
 </template>
 
 <style scoped>
