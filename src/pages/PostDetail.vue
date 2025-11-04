@@ -14,6 +14,7 @@ const title = ref('加载中...');
 const content = ref('');
 const authorName = ref('');
 const authorAvatar = ref('');
+const authorId = ref('');
 const publishTime = ref('');
 const ownPost = ref(false);
 const editMode = ref(false);
@@ -390,6 +391,7 @@ onMounted(async () => {
     content.value = data.content;
     authorName.value = data.author_name || '匿名';
     authorAvatar.value = data.author_avatar || '';
+    authorId.value = data.author || '';
     publishTime.value = data.created_at ? new Date(data.created_at).toLocaleString() : '';
     editForm.value = { title: data.title, content: data.content };
     // 判断是否本人文章
@@ -422,11 +424,22 @@ onMounted(async () => {
       <div class="article-info">
         <h1 style="margin:0 0 8px;">{{ title }}</h1>
         <div style="display:flex; align-items:center; gap:10px; color:var(--muted);">
-          <img v-if="authorAvatar" :src="authorAvatar" alt="avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-          <div v-else style="width:28px; height:28px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
-            {{ (authorName || '匿名').slice(0,1).toUpperCase() }}
+          <router-link v-if="authorId" :to="{ name: 'user', params: { id: authorId } }" style="text-decoration:none; color:inherit;">
+            <div style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <img v-if="authorAvatar" :src="authorAvatar" alt="avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+              <div v-else style="width:28px; height:28px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+                {{ (authorName || '匿名').slice(0,1).toUpperCase() }}
+              </div>
+              <span style="font-weight:500;">{{ authorName || '匿名' }}</span>
+            </div>
+          </router-link>
+          <div v-else style="display:flex; align-items:center; gap:8px;">
+            <img v-if="authorAvatar" :src="authorAvatar" alt="avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+            <div v-else style="width:28px; height:28px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+              {{ (authorName || '匿名').slice(0,1).toUpperCase() }}
+            </div>
+            <span>{{ authorName || '匿名' }}</span>
           </div>
-          <span>{{ authorName || '匿名' }}</span>
           <span style="font-size:12px;">{{ publishTime ? `发布于 ${publishTime}` : '' }} · 文章 ID：{{ id }}</span>
         </div>
       </div>

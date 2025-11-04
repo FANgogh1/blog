@@ -302,11 +302,22 @@ const uploadImage = async (event) => {
             <h3 class="post-title">{{ p.title }}</h3>
             <div class="post-meta">
               <div class="author-info">
-                <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" class="author-avatar" />
-                <div v-else class="author-avatar-placeholder">
-                  {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+                <router-link v-if="p.author" :to="{ name: 'user', params: { id: p.author } }" style="text-decoration:none; color:inherit;">
+                  <div style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" class="author-avatar" />
+                    <div v-else class="author-avatar-placeholder">
+                      {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+                    </div>
+                    <span class="author-name">{{ p.author_name || '匿名' }}</span>
+                  </div>
+                </router-link>
+                <div v-else style="display:flex; align-items:center; gap:8px;">
+                  <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" class="author-avatar" />
+                  <div v-else class="author-avatar-placeholder">
+                    {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+                  </div>
+                  <span class="author-name">{{ p.author_name || '匿名' }}</span>
                 </div>
-                <span class="author-name">{{ p.author_name || '匿名' }}</span>
               </div>
               <span class="post-date">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
             </div>

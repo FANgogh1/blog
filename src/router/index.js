@@ -9,6 +9,7 @@ import MyPosts from '../pages/MyPosts.vue';
 import Hot from '../pages/Hot.vue';
 import Search from '../pages/Search.vue';
 import Notifications from '../pages/Notifications.vue';
+import Following from '../pages/Following.vue';
 
 const routes = [
   { path: '/', name: 'home', component: Home },
@@ -16,10 +17,12 @@ const routes = [
   { path: '/register', name: 'register', component: Register },
   { path: '/post/:id', name: 'post', component: PostDetail, props: true },
   { path: '/profile', name: 'profile', component: Profile },
+  { path: '/user/:id', name: 'user', component: Profile, props: true },
   { path: '/my', name: 'my', component: MyPosts },
   { path: '/notifications', name: 'notifications', component: Notifications },
   { path: '/hot', name: 'hot', component: Hot },
   { path: '/search', name: 'search', component: Search },
+  { path: '/following', name: 'following', component: Following },
 ];
 
 const router = createRouter({

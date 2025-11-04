@@ -90,6 +90,7 @@ onMounted(() => { applyTheme(); });
         </button>
         <router-link to="/">首页</router-link>
         <router-link to="/hot">热榜</router-link>
+        <router-link to="/following">关注</router-link>
         <router-link to="/my">我的博客</router-link>
         <router-link to="/notifications" style="position:relative;">通知
           <span v-if="unreadCount>0" class="badge">{{ unreadCount }}</span>
