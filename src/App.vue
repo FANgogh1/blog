@@ -33,12 +33,25 @@ const fetchUnreadCount = async () => {
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes?.user?.id || userRes?.data?.user?.id || null;
     if (!uid) { return; }
-    const { count } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('recipient', uid)
-      .eq('read', false);
-    if (typeof count === 'number') unreadCount.value = count;
+    
+    // 同时查询普通通知和关注通知的未读数量
+    const [notificationsResult, followNotificationsResult] = await Promise.all([
+      supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient', uid)
+        .eq('read', false),
+      supabase
+        .from('follow_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient', uid)
+        .eq('read', false)
+    ]);
+    
+    const notificationsCount = notificationsResult.count || 0;
+    const followNotificationsCount = followNotificationsResult.count || 0;
+    
+    unreadCount.value = notificationsCount + followNotificationsCount;
   } catch (_) { /* noop */ }
 };
 

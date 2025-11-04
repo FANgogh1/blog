@@ -61,12 +61,12 @@ export const followUser = async (targetUserId) => {
     }
     
     // 检查是否已经关注
-    const { data: existingFollow } = await supabase
+    const { data: existingFollow, error: checkError } = await supabase
       .from('user_follows')
       .select('id')
       .eq('follower_id', currentUser.id)
       .eq('following_id', targetUserId)
-      .single();
+      .maybeSingle(); // 使用maybeSingle而不是single，避免404错误
     
     if (existingFollow) {
       throw new Error('已经关注该用户');
@@ -84,6 +84,37 @@ export const followUser = async (targetUserId) => {
       .single();
     
     if (error) throw error;
+    
+    // 发送关注通知给被关注用户
+    try {
+      // 获取当前用户信息
+      const currentUserInfo = await getUserInfoFromPosts(currentUser.id);
+      
+      // 发送关注通知到新的关注通知表
+      const notificationResult = await supabase
+        .from('follow_notifications')
+        .insert([{
+          recipient: targetUserId,
+          actor: currentUser.id,
+          actor_name: currentUserInfo.user_metadata?.nickname || '用户',
+          actor_avatar: currentUserInfo.user_metadata?.avatar_url || '',
+          created_at: new Date().toISOString(),
+          read: false
+        }]);
+      
+      if (notificationResult.error) {
+        console.error('发送关注通知失败:', notificationResult.error);
+      } else {
+        console.log('关注通知发送成功');
+        // 触发未读通知更新
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refresh-unread'));
+        }
+      }
+    } catch (notificationError) {
+      console.error('发送关注通知失败:', notificationError);
+      // 通知发送失败不影响关注操作
+    }
     
     return { success: true, data };
   } catch (error) {

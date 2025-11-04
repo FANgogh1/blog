@@ -11,27 +11,76 @@ const fetchNotifications = async () => {
   const { data: userRes } = await supabase.auth.getUser();
   const uid = userRes?.user?.id || userRes?.data?.user?.id || null;
   if (!uid) { loading.value = false; items.value = []; errorMsg.value = '请先登录'; return; }
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('recipient', uid)
-    .order('created_at', { ascending: false })
-    .limit(100);
-  loading.value = false;
-  if (error) { errorMsg.value = error.message || '加载失败'; items.value = []; return; }
-  items.value = (data || []).map(d => ({ ...d }));
+  
+  try {
+    // 同时获取普通通知和关注通知
+    const [notificationsResult, followNotificationsResult] = await Promise.all([
+      supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient', uid)
+        .order('created_at', { ascending: false })
+        .limit(100),
+      supabase
+        .from('follow_notifications')
+        .select('*')
+        .eq('recipient', uid)
+        .order('created_at', { ascending: false })
+        .limit(100)
+    ]);
+    
+    loading.value = false;
+    
+    if (notificationsResult.error) {
+      console.error('获取普通通知失败:', notificationsResult.error);
+    }
+    
+    if (followNotificationsResult.error) {
+      console.error('获取关注通知失败:', followNotificationsResult.error);
+    }
+    
+    // 合并通知并排序
+    const allNotifications = [
+      ...(notificationsResult.data || []).map(n => ({
+        ...n,
+        source: 'notifications',
+        type: n.type || 'unknown'
+      })),
+      ...(followNotificationsResult.data || []).map(n => ({
+        ...n,
+        source: 'follow_notifications',
+        type: 'follow'
+      }))
+    ];
+    
+    // 按创建时间排序
+    items.value = allNotifications.sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+  } catch (err) {
+    loading.value = false;
+    errorMsg.value = '加载通知失败';
+    console.error('加载通知失败:', err);
+  }
 };
 
 const markRead = async (n) => {
   if (!n?.id) return;
+  
+  // 根据通知来源选择正确的表
+  const tableName = n.source === 'follow_notifications' ? 'follow_notifications' : 'notifications';
+  
   const { error } = await supabase
-    .from('notifications')
+    .from(tableName)
     .update({ read: true })
     .eq('id', n.id);
+  
   if (error) {
     errorMsg.value = error.message || '标记已读失败';
     return;
   }
+  
   n.read = true;
   window.dispatchEvent(new CustomEvent('refresh-unread'));
 };
@@ -51,8 +100,11 @@ onMounted(() => {
     <ul v-else style="display:grid; gap:8px; list-style:none; padding:0; margin:0;">
       <li v-for="n in items" :key="n.id" class="card" style="padding:12px; display:flex; align-items:center; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px; flex:1;">
-          <span :style="{ color: n.type==='comment' ? '#2b9e6e' : '#1f7aec', fontWeight: 600 }">
-            {{ n.type==='comment' ? '评论' : '点赞' }}
+          <span :style="{ 
+            color: n.type==='comment' ? '#2b9e6e' : n.type==='like' ? '#1f7aec' : '#ff6b35', 
+            fontWeight: 600 
+          }">
+            {{ n.type==='comment' ? '评论' : n.type==='like' ? '点赞' : '关注' }}
           </span>
           <span style="display:inline-flex; align-items:center; gap:8px;">
             <img v-if="n.actor_avatar" :src="n.actor_avatar" alt="avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
@@ -61,11 +113,13 @@ onMounted(() => {
             </span>
             <span style="color:var(--text);">{{ n.actor_name || '用户' }}</span>
           </span>
-          <span style="color:var(--muted);">文章：{{ n.post_title || ('#' + n.post_id) }}</span>
-          <span v-if="n.content" style="color:var(--text);">内容：{{ n.content }}</span>
+          <span v-if="n.type !== 'follow'" style="color:var(--muted);">文章：{{ n.post_title || ('#' + n.post_id) }}</span>
+          <span v-if="n.content && n.type !== 'follow'" style="color:var(--text);">内容：{{ n.content }}</span>
+          <span v-if="n.type === 'follow'" style="color:var(--muted);">关注了你</span>
           <span style="margin-left:auto; font-size:12px; color:var(--muted);">{{ new Date(n.created_at).toLocaleString() }}</span>
         </div>
-        <router-link class="btn" :to="{ name: 'post', params: { id: n.post_id } }">前往文章</router-link>
+        <router-link v-if="n.type !== 'follow'" class="btn" :to="{ name: 'post', params: { id: n.post_id } }">前往文章</router-link>
+        <router-link v-if="n.type === 'follow'" class="btn" :to="{ name: 'user', params: { id: n.actor } }">查看用户</router-link>
         <button class="btn" v-if="!n.read" @click="markRead(n)">标记已读</button>
       </li>
     </ul>
