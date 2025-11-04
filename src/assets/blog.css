@@ -35,7 +35,7 @@ body {
 a { color: var(--primary); text-decoration: none; }
 a:hover { color: var(--primary-hover); }
 
-.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.container { max-width: 1800px; margin: 0 auto; padding: 24px; }
 .navbar {
   position: sticky; top: 0; z-index: 20;
   background: var(--card);

@@ -43,7 +43,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="card" style="padding:20px;">
+  <div class="card" style="padding:20px; max-width: 1200px; margin: 0 auto;">
     <h2 style="margin:0 0 12px;">通知</h2>
     <div v-if="loading">加载中...</div>
     <div v-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>

@@ -264,48 +264,60 @@ const uploadImage = async (event) => {
 </script>
 
 <template>
-  <!-- 首页轮播图（Storage） -->
-  <div v-if="banners.length" class="card" style="margin-bottom:16px; padding:0; overflow:hidden; position:relative; height: 300px;">
-    <img :src="banners[curBanner]" alt="banner" style="width:100%; height:100%; object-fit:cover; display:block;" />
-    <button class="btn" @click="prevBanner" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);">‹</button>
-    <button class="btn" @click="nextBanner" style="position:absolute; right:12px; top:50%; transform:translateY(-50%);">›</button>
-    <div style="position:absolute; left:0; right:0; bottom:10px; display:flex; justify-content:center; gap:6px;">
-      <span v-for="(b, i) in banners" :key="i" :style="{ width: '8px', height: '8px', borderRadius: '50%', background: i===curBanner ? 'var(--primary)' : 'var(--border)' }"></span>
-    </div>
-  </div>
-
-  <div style="display:grid; grid-template-columns: 240px 1fr; gap:16px; align-items:start;">
-    <!-- 左侧：日历筛选 -->
-    <div class="card" style="padding:12px;">
-      <div style="font-weight:600; margin-bottom:8px;">按日期筛选</div>
-      <input class="input" type="date" v-model="selectedDate" />
-      <div style="color:var(--muted); font-size:12px; margin-top:8px;">
-        已选：{{ selectedDate || '未选择（显示全部）' }}
+  <!-- 整体网格布局：左侧筛选栏 + 右侧内容区 -->
+  <div class="main-grid">
+    <!-- 左侧筛选栏 -->
+    <aside class="sidebar">
+      <div class="card filter-card">
+        <div class="filter-header">按日期筛选</div>
+        <input class="input" type="date" v-model="selectedDate" />
+        <div class="filter-info">
+          已选：{{ selectedDate || '未选择（显示全部）' }}
+        </div>
+        <div class="filter-actions">
+          <button class="btn" @click="selectedDate = ''">清除筛选</button>
+          <button class="btn" @click="selectedDate = toYYYYMMDD(new Date())">今天</button>
+        </div>
       </div>
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="btn" @click="selectedDate = ''">清除筛选</button>
-        <button class="btn" @click="selectedDate = toYYYYMMDD(new Date())">今天</button>
-      </div>
-    </div>
+    </aside>
 
-    <!-- 右侧：文章列表 -->
-    <div class="grid cols-3">
-      <router-link v-for="p in filteredPosts" :key="p.id" class="card" :to="{ name: 'post', params: { id: p.id } }" style="padding:16px; text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
-        <h3 style="margin:0 0 8px;">{{ p.title }}</h3>
-        <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
-          <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-          <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
-            {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+    <!-- 右侧内容区 -->
+    <main class="content-area">
+      <!-- 轮播图 -->
+      <div v-if="banners.length" class="banner-section">
+        <div class="card banner-card">
+          <img :src="banners[curBanner]" alt="banner" class="banner-image" />
+          <button class="btn banner-nav prev" @click="prevBanner">‹</button>
+          <button class="btn banner-nav next" @click="nextBanner">›</button>
+          <div class="banner-dots">
+            <span v-for="(b, i) in banners" :key="i" :class="{ active: i===curBanner }"></span>
           </div>
-          <span>{{ p.author_name || '匿名' }}</span>
-          <span style="margin-left:auto; font-size:12px;">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
         </div>
-        <p style="color:var(--muted); margin:0;">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
-        <div style="margin-top:auto; display:flex; gap:8px;">
-          <span class="btn" style="pointer-events:none;">查看详情</span>
+      </div>
+
+      <!-- 文章列表 -->
+      <div class="posts-section">
+        <div class="posts-grid">
+          <router-link v-for="p in filteredPosts" :key="p.id" class="card post-card" :to="{ name: 'post', params: { id: p.id } }">
+            <h3 class="post-title">{{ p.title }}</h3>
+            <div class="post-meta">
+              <div class="author-info">
+                <img v-if="p.author_avatar" :src="p.author_avatar" alt="avatar" class="author-avatar" />
+                <div v-else class="author-avatar-placeholder">
+                  {{ (p.author_name || '匿名').slice(0,1).toUpperCase() }}
+                </div>
+                <span class="author-name">{{ p.author_name || '匿名' }}</span>
+              </div>
+              <span class="post-date">{{ p.created_at ? new Date(p.created_at).toLocaleString() : '' }}</span>
+            </div>
+            <p class="post-excerpt">{{ stripHtml(p.content)?.slice(0, 60) || '' }}</p>
+            <div class="post-actions">
+              <span class="btn view-btn">查看详情</span>
+            </div>
+          </router-link>
         </div>
-      </router-link>
-    </div>
+      </div>
+    </main>
   </div>
 
   <!-- 悬浮新增按钮 -->
@@ -354,6 +366,262 @@ const uploadImage = async (event) => {
 </template>
 
 <style scoped>
+/* 主网格布局 */
+.main-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* 左侧筛选栏 */
+.sidebar {
+  position: sticky;
+  top: 200px;
+  height: fit-content;
+}
+
+.filter-card {
+  padding: 16px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.filter-header {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.filter-info {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.filter-actions .btn {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+/* 右侧内容区 */
+.content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 轮播图区域 */
+.banner-section {
+  width: 100%;
+}
+
+.banner-card {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  height: 300px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.banner-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.banner-nav:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.banner-nav.prev {
+  left: 16px;
+}
+
+.banner-nav.next {
+  right: 16px;
+}
+
+.banner-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.banner-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background-color 0.2s ease;
+}
+
+.banner-dots span.active {
+  background: var(--primary);
+}
+
+/* 文章列表区域 */
+.posts-section {
+  width: 100%;
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.post-card {
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.post-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.author-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #163229;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.post-date {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.post-excerpt {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+  font-size: 14px;
+}
+
+.post-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.view-btn {
+  pointer-events: none;
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .sidebar {
+    position: static;
+  }
+  
+  .posts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .banner-card {
+    height: 200px;
+  }
+  
+  .banner-nav {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
 /* 编辑器样式 - 固定宽度并自动换行 */
 .editor-wrapper {
   width: 100%;
