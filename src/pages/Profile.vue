@@ -371,7 +371,7 @@ const showFollowersModal = async () => {
                   :class="{ primary: isFollowingUser }"
                   @click="toggleFollow"
                   :disabled="followLoading">
-            {{ followLoading ? '处理中...' : (isFollowingUser ? '已关注' : '关注') }}
+            {{ followLoading ? '处理中...' : (isFollowingUser ? '取消关注' : '关注') }}
           </button>
         </div>
       </div>

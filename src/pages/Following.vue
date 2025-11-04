@@ -3,45 +3,74 @@ import { ref, onMounted, computed } from 'vue';
 import { supabase } from '../lib/supabase';
 import { getFollowingList } from '../lib/follow';
 
-const loading = ref(true);
+const loading = ref(false);
 const errorMsg = ref('');
 const posts = ref([]);
 const currentUser = ref(null);
 const hasFetched = ref(false); // 防止重复调用
 
+// 测试函数
+const testFunction = () => {
+  console.log('测试函数被调用');
+  return '测试成功';
+};
+
+// 立即执行测试
+console.log('Following组件脚本开始执行');
+console.log('测试结果:', testFunction());
+
 // 获取已关注用户的文章
 const fetchFollowingPosts = async () => {
   // 防止重复调用
-  if (loading.value || hasFetched.value) return;
+  console.log('检查调用条件:', { loading: loading.value, hasFetched: hasFetched.value });
+  if (loading.value || hasFetched.value) {
+    console.log('调用被阻止，直接返回');
+    return;
+  }
   
   loading.value = true;
   errorMsg.value = '';
   
   try {
+    console.log('开始获取关注文章...');
+    
     // 获取当前用户（只在首次调用时获取）
     if (!currentUser.value) {
-      const { data: userRes } = await supabase.auth.getUser();
+      console.log('正在获取当前用户信息...');
+      const { data: userRes, error: userError } = await supabase.auth.getUser();
+      console.log('用户信息获取结果:', { userRes, userError });
       currentUser.value = userRes?.user || null;
     }
     
+    console.log('当前用户状态:', currentUser.value);
+    
     if (!currentUser.value) {
+      console.log('未获取到用户信息，显示登录提示');
       errorMsg.value = '请先登录';
       posts.value = [];
       hasFetched.value = true;
+      loading.value = false;
       return;
     }
     
+    console.log('当前用户ID:', currentUser.value.id);
+    
     // 获取关注列表
+    console.log('正在获取关注列表...');
     const followingList = await getFollowingList(currentUser.value.id);
+    console.log('关注列表:', followingList);
     
     if (followingList.length === 0) {
+      console.log('关注列表为空');
       posts.value = [];
       hasFetched.value = true;
+      loading.value = false;
       return;
     }
     
     // 获取已关注用户的文章
     const followingIds = followingList.map(item => item.following_id);
+    console.log('关注用户ID列表:', followingIds);
     
     const { data: postsData, error } = await supabase
       .from('posts')
@@ -51,6 +80,7 @@ const fetchFollowingPosts = async () => {
     
     if (error) throw error;
     
+    console.log('获取到的文章数据:', postsData);
     posts.value = postsData || [];
     hasFetched.value = true;
     
@@ -61,11 +91,14 @@ const fetchFollowingPosts = async () => {
     hasFetched.value = true; // 即使出错也标记为已获取，防止无限重试
   } finally {
     loading.value = false;
+    console.log('加载完成，loading状态:', loading.value, 'posts数量:', posts.value.length);
   }
 };
 
 onMounted(() => {
+  console.log('Following页面已挂载，开始调用fetchFollowingPosts');
   fetchFollowingPosts();
+  console.log('fetchFollowingPosts调用完成');
 });
 
 // 格式化日期
@@ -89,7 +122,8 @@ const getExcerpt = (content) => {
 </script>
 
 <template>
-  <div class="card" style="max-width:960px; margin:0 auto; padding:30px;">
+  
+  <div>
     <h2 style="margin:0 0 16px;">关注动态</h2>
     <div style="color:var(--muted); margin-bottom:20px;">
       这里显示你关注的人发布的文章
@@ -98,6 +132,18 @@ const getExcerpt = (content) => {
     <!-- 加载状态 -->
     <div v-if="loading" style="text-align:center; padding:40px; color:var(--muted);">
       <div>加载中...</div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div v-else-if="errorMsg" class="card" style="padding:16px; background:#fff5f5; border:1px solid #ffccc7;">
+      <div style="color:#ff4d4f; display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        {{ errorMsg }}
+      </div>
     </div>
 
     <!-- 未登录提示 -->
@@ -113,18 +159,6 @@ const getExcerpt = (content) => {
       <h3 style="margin:0 0 8px; color:var(--text);">请先登录</h3>
       <p style="color:var(--muted); margin:0 0 16px;">登录后可以查看你关注的人发布的文章</p>
       <router-link to="/login" class="btn primary">立即登录</router-link>
-    </div>
-
-    <!-- 错误提示 -->
-    <div v-else-if="errorMsg" class="card" style="padding:16px; background:#fff5f5; border:1px solid #ffccc7;">
-      <div style="color:#ff4d4f; display:flex; align-items:center; gap:8px;">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        {{ errorMsg }}
-      </div>
     </div>
 
     <!-- 空状态 -->
@@ -144,49 +178,33 @@ const getExcerpt = (content) => {
     </div>
 
     <!-- 文章列表 -->
-    <div v-else class="grid cols-2">
-      <router-link 
-        v-for="post in posts" 
-        :key="post.id" 
-        class="card" 
-        :to="{ name: 'post', params: { id: post.id } }" 
-        style="padding:20px; text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%; transition:transform 0.2s;"
-        @mouseenter="$event.currentTarget.style.transform = 'translateY(-2px)'"
-        @mouseleave="$event.currentTarget.style.transform = 'translateY(0)'"
-      >
-        <h3 style="margin:0 0 12px; font-size:18px; line-height:1.4; color:var(--text);">{{ post.title }}</h3>
-        
-        <!-- 作者信息 -->
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-          <router-link 
-            :to="{ name: 'user', params: { id: post.author } }" 
-            style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:8px;"
-            @click.stop
-          >
-            <img 
-              v-if="post.author_avatar" 
-              :src="post.author_avatar" 
-              alt="avatar" 
-              style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" 
-            />
-            <div 
-              v-else 
-              style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;"
-            >
-              {{ (post.author_name || '匿名').slice(0,1).toUpperCase() }}
+    <div v-else class="posts-grid">
+      <router-link v-for="post in posts" :key="post.id" class="card post-card" :to="{ name: 'post', params: { id: post.id } }">
+        <h3 class="post-title">{{ post.title }}</h3>
+        <div class="post-meta">
+          <div class="author-info">
+            <router-link v-if="post.author" :to="{ name: 'user', params: { id: post.author } }" style="text-decoration:none; color:inherit;">
+              <div style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <img v-if="post.author_avatar" :src="post.author_avatar" alt="avatar" class="author-avatar" />
+                <div v-else class="author-avatar-placeholder">
+                  {{ (post.author_name || '匿名').slice(0,1).toUpperCase() }}
+                </div>
+                <span class="author-name">{{ post.author_name || '匿名' }}</span>
+              </div>
+            </router-link>
+            <div v-else style="display:flex; align-items:center; gap:8px;">
+              <img v-if="post.author_avatar" :src="post.author_avatar" alt="avatar" class="author-avatar" />
+              <div v-else class="author-avatar-placeholder">
+                {{ (post.author_name || '匿名').slice(0,1).toUpperCase() }}
+              </div>
+              <span class="author-name">{{ post.author_name || '匿名' }}</span>
             </div>
-            <span style="font-weight:500; color:var(--text);">{{ post.author_name || '匿名' }}</span>
-          </router-link>
-          <span style="margin-left:auto; font-size:12px; color:var(--muted);">{{ formatDate(post.created_at) }}</span>
+          </div>
+          <span class="post-date">{{ formatDate(post.created_at) }}</span>
         </div>
-        
-        <!-- 文章摘要 -->
-        <p style="color:var(--muted); margin:0 0 16px; line-height:1.5; flex:1;">{{ getExcerpt(post.content) }}</p>
-        
-        <!-- 操作按钮 -->
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="btn primary" style="pointer-events:none; font-size:14px;">阅读全文</span>
-          <span style="font-size:12px; color:var(--muted);">来自关注</span>
+        <p class="post-excerpt">{{ getExcerpt(post.content) }}</p>
+        <div class="post-actions">
+          <span class="btn view-btn">查看详情</span>
         </div>
       </router-link>
     </div>
@@ -194,23 +212,111 @@ const getExcerpt = (content) => {
 </template>
 
 <style scoped>
-.grid.cols-2 {
+/* 文章列表区域 */
+.posts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  gap: 16px;
 }
 
+.post-card {
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.post-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.author-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #163229;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.author-name {
+  font-weight: 500;
+}
+
+.post-date {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.post-excerpt {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+  font-size: 14px;
+}
+
+.post-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.view-btn {
+  pointer-events: none;
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
-  .grid.cols-2 {
+  .posts-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.card {
-  transition: all 0.2s ease;
-}
-
-.card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 </style>
