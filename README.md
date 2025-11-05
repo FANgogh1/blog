@@ -12,9 +12,8 @@
 - 📊 **通知中心**：点赞和评论通知
 - 🔍 **搜索与筛选**：支持按日期筛选文章
 - 🤖 **AI文章总结**：集成Dify AI工作流，一键生成文章摘要
-- 🤖 **AI文章总结**：集成Dify AI工作流，一键生成文章摘要
-- 🤖 **AI文章总结**：集成Dify AI工作流，一键生成文章摘要
-- 🤖 **AI文章总结**：集成Dify AI工作流，一键生成文章摘要
+
+
 
 ### 文章正文样式
 文章正文区域采用无边框设计，具有以下特性：
@@ -43,19 +42,7 @@
 - **结果显示**：总结结果以弹窗形式显示，可关闭
 - **配置要求**：需要配置Dify API密钥和工作流ID
 
-### AI文章总结功能
-- **功能位置**：文章详情页右下角固定按钮
-- **工作流集成**：连接Dify AI工作流进行文章分析
-- **使用方式**：点击"🤖 AI总结"按钮，等待AI生成文章摘要
-- **结果显示**：总结结果以弹窗形式显示，可关闭
-- **配置要求**：需要配置Dify API密钥和工作流ID
 
-### AI文章总结功能
-- **功能位置**：文章详情页右下角固定按钮
-- **工作流集成**：连接Dify AI工作流进行文章分析
-- **使用方式**：点击"🤖 AI总结"按钮，等待AI生成文章摘要
-- **结果显示**：总结结果以弹窗形式显示，可关闭
-- **配置要求**：需要配置Dify API密钥和工作流ID
 
 ## 技术栈
 
@@ -66,63 +53,8 @@
 - **路由管理**：Vue Router
 - **样式处理**：原生 CSS + CSS 变量
 
-## 开发环境设置
 
-### IDE 推荐
 
-[VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
-
-### 浏览器设置
-
-- Chromium 内核浏览器（Chrome, Edge, Brave 等）:
-  - [Vue.js DevTools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Chrome DevTools 自定义对象格式化器](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js DevTools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Firefox DevTools 自定义对象格式化器](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-### 配置文件
-
-查看 [Vite 配置参考](https://vite.dev/config/)
-
-## 安装和运行
-
-### 安装依赖
-
-```sh
-npm install
-```
-
-### 配置AI总结功能
-
-1. 复制环境变量配置文件：
-```sh
-cp .env.example .env
-```
-
-2. 编辑 `.env` 文件，填入你的Dify配置：
-```env
-VITE_DIFY_API_KEY=你的Dify API密钥
-VITE_DIFY_WORKFLOW_ID=你的工作流ID
-VITE_DIFY_BASE_URL=https://api.dify.ai/v1
-```
-
-3. 获取Dify配置信息：
-   - 登录 [Dify平台](https://dify.ai)
-   - 创建或选择已有的工作流
-   - 在工作流设置中获取API密钥和工作流ID
-
-### 开发模式（热更新）
-
-```sh
-npm run dev
-```
-
-### 生产构建
-
-```sh
-npm run build
-```
 
 ## 使用说明
 

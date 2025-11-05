@@ -405,10 +405,9 @@ const showFollowersModal = async () => {
       </div>
       
       <!-- 贡献日历 -->
-      <div class="card" style="padding:16px;">
-        <h3 style="margin:0 0 16px;">创作日历</h3>
-        <ContributionCalendar v-if="user" :userId="user.id" />
-      </div>
+
+      <ContributionCalendar v-if="user" :userId="user.id" />
+
 
       <!-- 关注列表弹窗 -->
       <div v-if="showFollowingList" class="modal-overlay" @click="showFollowingList = false">

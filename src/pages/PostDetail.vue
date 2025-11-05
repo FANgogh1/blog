@@ -849,8 +849,9 @@ onMounted(async () => {
 /* AI总结功能样式 */
 .ai-summary-container {
   position: fixed;
-  bottom: 20px;
+  top: 50%;
   right: 20px;
+  transform: translateY(-50%);
   z-index: 1000;
 }
 
@@ -886,7 +887,7 @@ onMounted(async () => {
 
 .ai-summary-panel {
   position: absolute;
-  bottom: 60px;
+  top: 60px;
   right: 0;
   width: 400px;
   max-width: 90vw;
