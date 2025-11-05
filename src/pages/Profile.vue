@@ -29,7 +29,9 @@ const form = ref({
   nickname: '',
   bio: '',
   avatarFile: null,
-  avatarPreview: ''
+  avatarPreview: '',
+  backgroundFile: null,
+  backgroundPreview: ''
 });
 const saving = ref(false);
 const errorMsg = ref('');
@@ -72,6 +74,7 @@ const loadUserProfile = async (userId) => {
         form.value.nickname = meta.nickname || '';
         form.value.bio = meta.bio || '';
         form.value.avatarPreview = meta.avatar_url || '';
+        form.value.backgroundPreview = meta.background_url || '';
       }
     } else {
       // 查看其他用户的主页，通过ID查询用户信息
@@ -140,7 +143,31 @@ const onPickAvatar = (e) => {
   } catch {}
 };
 
-/** 保存资料：先上传头像(如有)，再更新用户 metadata */
+/** 选择背景图文件，做本地预览 */
+const onPickBackground = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  
+  // 验证文件大小（最大5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    errorMsg.value = '背景图文件大小不能超过5MB';
+    return;
+  }
+  
+  // 验证文件类型
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    errorMsg.value = '请选择JPEG、PNG或WebP格式的图片';
+    return;
+  }
+  
+  form.value.backgroundFile = file;
+  try {
+    form.value.backgroundPreview = URL.createObjectURL(file);
+  } catch {}
+};
+
+/** 保存资料：先上传头像和背景图(如有)，再更新用户 metadata */
 const onSave = async () => {
   if (!user.value || !editMode.value) return;
   errorMsg.value = '';
@@ -148,13 +175,14 @@ const onSave = async () => {
   saving.value = true;
 
   let avatarUrl = form.value.avatarPreview || '';
+  let backgroundUrl = form.value.backgroundPreview || '';
 
   try {
-    // 若选择了新文件则上传
+    // 若选择了新头像文件则上传
     if (form.value.avatarFile) {
       const uid = user.value.id;
       const ext = form.value.avatarFile.name.split('.').pop() || 'png';
-      const path = `${uid}/${Date.now()}.${ext}`;
+      const path = `${uid}/avatar_${Date.now()}.${ext}`;
       const { error: upErr } = await supabase
         .storage
         .from('avatars')
@@ -165,11 +193,27 @@ const onSave = async () => {
       avatarUrl = pub?.publicUrl || avatarUrl;
     }
 
+    // 若选择了新背景图文件则上传
+    if (form.value.backgroundFile) {
+      const uid = user.value.id;
+      const ext = form.value.backgroundFile.name.split('.').pop() || 'jpg';
+      const path = `${uid}/background_${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase
+        .storage
+        .from('backgrounds')
+        .upload(path, form.value.backgroundFile, { upsert: true, cacheControl: '3600', contentType: form.value.backgroundFile.type });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from('backgrounds').getPublicUrl(path);
+      backgroundUrl = pub?.publicUrl || backgroundUrl;
+    }
+
     const { data, error } = await supabase.auth.updateUser({
       data: {
         nickname: form.value.nickname?.trim() || '',
         bio: form.value.bio?.trim() || '',
-        avatar_url: avatarUrl || ''
+        avatar_url: avatarUrl || '',
+        background_url: backgroundUrl || ''
       }
     });
     if (error) throw error;
@@ -192,6 +236,8 @@ const cancelEdit = () => {
   form.value.bio = meta.bio || '';
   form.value.avatarPreview = meta.avatar_url || '';
   form.value.avatarFile = null;
+  form.value.backgroundPreview = meta.background_url || '';
+  form.value.backgroundFile = null;
   errorMsg.value = '';
   successMsg.value = '';
   editMode.value = false;
@@ -306,7 +352,7 @@ const showFollowersModal = async () => {
 </script>
 
 <template>
-  <div class="card" style="max-width:960px; margin:0 auto; padding:30px;">
+  <div class="card" style="max-width:1280px; margin:0 auto; padding:40px;">
     <h2 style="margin:0 0 16px;">
       {{ isOwnProfile ? '个人中心' : '个人主页' }}
       <span v-if="!isOwnProfile && user" style="font-size:14px; color:var(--muted); font-weight:normal;">
@@ -326,33 +372,66 @@ const showFollowersModal = async () => {
     </div>
 
     <div v-else style="display:grid; gap:16px;">
+      <!-- 背景图区域 -->
+      <div style="position:relative; height:200px; border-radius:12px; overflow:hidden; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div v-if="user.user_metadata?.background_url" 
+             :style="{ 
+               backgroundImage: `url(${user.user_metadata.background_url})`,
+               backgroundSize: 'cover',
+               backgroundPosition: 'center',
+               width: '100%',
+               height: '100%',
+               position: 'absolute',
+               top: 0,
+               left: 0
+             }">
+        </div>
+        <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.3);"></div>
+        
+        <!-- 如果当前用户正在编辑，显示上传按钮 -->
+        <div v-if="isOwnProfile && editMode" style="position:absolute; top:16px; right:16px;">
+          <label class="btn" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); color:white; border:none; cursor:pointer;">
+            <input type="file" accept="image/*" @change="onPickBackground" style="display:none;" />
+            更换背景
+          </label>
+        </div>
+        
+        <!-- 显示当前背景预览 -->
+        <div v-if="isOwnProfile && editMode && form.backgroundPreview" style="position:absolute; top:16px; left:16px; width:200px; height:80px; border-radius:8px; overflow:hidden; border:2px solid white;">
+          <img :src="form.backgroundPreview" alt="背景预览" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+      </div>
+
       <!-- 头像与基础信息 -->
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:24px;">
+        <div style="display:flex; align-items:center; gap:24px;">
           <div style="position:relative;">
             <img v-if="user.user_metadata?.avatar_url" :src="user.user_metadata.avatar_url" alt="avatar"
-                 style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+                 style="width:120px; height:120px; border-radius:50%; object-fit:cover; border:2px solid var(--border);" />
             <div v-else
-                 style="width:80px; height:80px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:700;">
+                 style="width:120px; height:120px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:700; font-size:36px;">
               {{ (user.user_metadata?.nickname || user.email || 'U').slice(0,1).toUpperCase() }}
             </div>
           </div>
           <div>
-            <div style="font-weight:600; font-size:20px;">{{ user.user_metadata?.nickname || '未设置昵称' }}</div>
-            <div style="color:var(--muted); font-size:13px;">{{ user.email }}</div>
-            <div style="margin-top:8px; white-space:pre-wrap; color:var(--text); max-width:400px;">{{ user.user_metadata?.bio || '尚未填写个人简介' }}</div>
-            
-            <!-- 关注数据 -->
-            <div style="display:flex; gap:20px; margin-top:12px;">
-              <div style="text-align:center; cursor:pointer;" @click="showFollowingModal">
-                <div style="font-weight:600; font-size:16px;">{{ followingCount }}</div>
-                <div style="color:var(--muted); font-size:12px;">关注</div>
-              </div>
-              <div style="text-align:center; cursor:pointer;" @click="showFollowersModal">
-                <div style="font-weight:600; font-size:16px;">{{ followersCount }}</div>
-                <div style="color:var(--muted); font-size:12px;">粉丝</div>
+            <div style="display:flex; align-items:center; gap:24px; margin-bottom:12px;">
+              <div style="font-weight:600; font-size:28px;">{{ user.user_metadata?.nickname || '未设置昵称' }}</div>
+              
+              <!-- 关注数据 - 移动到用户名后面 -->
+              <div style="display:flex; gap:24px;">
+                <div style="text-align:center; cursor:pointer;" @click="showFollowingModal">
+                  <div style="font-weight:600; font-size:20px;">{{ followingCount }}</div>
+                  <div style="color:var(--muted); font-size:14px;">关注</div>
+                </div>
+                <div style="text-align:center; cursor:pointer;" @click="showFollowersModal">
+                  <div style="font-weight:600; font-size:20px;">{{ followersCount }}</div>
+                  <div style="color:var(--muted); font-size:14px;">粉丝</div>
+                </div>
               </div>
             </div>
+            
+            <div style="color:var(--muted); font-size:16px;">{{ user.email }}</div>
+            <div style="margin-top:12px; white-space:pre-wrap; color:var(--text); max-width:600px; font-size:15px; line-height:1.6;">{{ user.user_metadata?.bio || '尚未填写个人简介' }}</div>
           </div>
         </div>
         
@@ -390,6 +469,10 @@ const showFollowersModal = async () => {
         <label>
           头像
           <input class="input" type="file" accept="image/*" @change="onPickAvatar" />
+        </label>
+        <label>
+          背景图
+          <input class="input" type="file" accept="image/*" @change="onPickBackground" />
         </label>
         <label>
           个人简介

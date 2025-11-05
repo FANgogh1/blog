@@ -142,6 +142,13 @@ const totalPosts = computed(() => {
   return Object.values(contributionData.value).reduce((sum, count) => sum + count, 0);
 });
 
+// 获取创作天数
+const totalDays = computed(() => {
+  return Object.keys(contributionData.value).filter(date => {
+    return contributionData.value[date] > 0;
+  }).length;
+});
+
 // 获取连续天数
 const streakDays = computed(() => {
   let streak = 0;
@@ -207,6 +214,9 @@ watch(() => props.userId, (newUserId) => {
       <div class="stats">
         <span class="stat-item">
           <strong>{{ totalPosts }}</strong> 篇博客
+        </span>
+        <span class="stat-item">
+          <strong>{{ totalDays }}</strong> 天创作
         </span>
         <span class="stat-item">
           <strong>{{ streakDays }}</strong> 天连续创作
@@ -385,7 +395,7 @@ watch(() => props.userId, (newUserId) => {
 
 .grid-cells {
   display: flex;
-  gap: 2px;
+  gap: 8px;
 }
 
 .week-column {
