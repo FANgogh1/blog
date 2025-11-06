@@ -6,6 +6,12 @@ const loading = ref(true);
 const errorMsg = ref('');
 const items = ref([]); // [{ post, likeCount }]
 
+// HTML 清理函数
+const stripHtml = (html) => {
+  if (!html) return '';
+  return String(html).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+};
+
 const fetchHot = async () => {
   loading.value = true;
   errorMsg.value = '';
@@ -68,39 +74,39 @@ onMounted(fetchHot);
     <div v-else-if="errorMsg" style="color:#ff6b6b;">{{ errorMsg }}</div>
     <div v-else-if="!items.length" style="color:var(--muted);">暂无数据</div>
 
-    <div v-else class="grid cols-3">
-      <router-link v-for="it in items" :key="it.post.id" class="card" :to="{ name: 'post', params: { id: it.post.id } }" style="padding:16px; text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%; position:relative;">
-        <h3 style="margin:0 0 8px;">{{ it.post.title }}</h3>
-        <div style="display:flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:10px;">
-          <router-link v-if="it.post.author" :to="{ name: 'user', params: { id: it.post.author } }" style="text-decoration:none; color:inherit;">
-            <div style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-              <img v-if="it.post.author_avatar" :src="it.post.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-              <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
+    <div v-else class="posts-grid">
+      <router-link v-for="it in items" :key="it.post.id" class="card post-card" :to="{ name: 'post', params: { id: it.post.id } }">
+        <!-- 右上角获赞数 -->
+        <div class="like-badge">
+          <span class="like-count">{{ it.likeCount }}</span>
+          <span class="like-text">获赞</span>
+        </div>
+        
+        <h3 class="post-title">{{ it.post.title }}</h3>
+        <div class="post-meta">
+          <div class="author-info">
+            <router-link v-if="it.post.author" :to="{ name: 'user', params: { id: it.post.author } }" style="text-decoration:none; color:inherit;">
+              <div style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <img v-if="it.post.author_avatar" :src="it.post.author_avatar" alt="avatar" class="author-avatar" />
+                <div v-else class="author-avatar-placeholder">
+                  {{ (it.post.author_name || '匿名').slice(0,1).toUpperCase() }}
+                </div>
+                <span class="author-name">{{ it.post.author_name || '匿名' }}</span>
+              </div>
+            </router-link>
+            <div v-else style="display:flex; align-items:center; gap:8px;">
+              <img v-if="it.post.author_avatar" :src="it.post.author_avatar" alt="avatar" class="author-avatar" />
+              <div v-else class="author-avatar-placeholder">
                 {{ (it.post.author_name || '匿名').slice(0,1).toUpperCase() }}
               </div>
-              <span style="font-weight:500;">{{ it.post.author_name || '匿名' }}</span>
+              <span class="author-name">{{ it.post.author_name || '匿名' }}</span>
             </div>
-          </router-link>
-          <div v-else style="display:flex; align-items:center; gap:8px;">
-            <img v-if="it.post.author_avatar" :src="it.post.author_avatar" alt="avatar" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-            <div v-else style="width:24px; height:24px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--primary); font-weight:700;">
-              {{ (it.post.author_name || '匿名').slice(0,1).toUpperCase() }}
-            </div>
-            <span>{{ it.post.author_name || '匿名' }}</span>
           </div>
-          <span style="margin-left:auto; font-size:12px;">{{ it.post.created_at ? new Date(it.post.created_at).toLocaleString() : '' }}</span>
+          <span class="post-date">{{ it.post.created_at ? new Date(it.post.created_at).toLocaleString() : '' }}</span>
         </div>
-        <p style="color:var(--muted); margin:0;">{{ (it.post.content || '').replace(/<[^>]+>/g, '')?.slice(0, 80) }}</p>
-        
-        <!-- 获赞数徽章 - 左下角 -->
-        <div style="position:absolute; left:16px; bottom:16px;">
-          <span class="badge" style="background:var(--primary); color:#fff; padding:2px 8px; border-radius:999px; font-size:12px;">
-            获赞数{{ it.likeCount }}
-          </span>
-        </div>
-        
-        <div style="margin-top:auto; display:flex; justify-content:flex-end; gap:8px;">
-          <span class="btn primary" style="pointer-events:none;">查看详情</span>
+        <p class="post-excerpt">{{ stripHtml(it.post.content)?.slice(0, 60) || '' }}</p>
+        <div class="post-actions">
+          <span class="btn view-btn">查看详情</span>
         </div>
       </router-link>
     </div>
@@ -108,4 +114,151 @@ onMounted(fetchHot);
 </template>
 
 <style scoped>
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.post-card {
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 获赞数徽章样式 */
+.like-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  z-index: 2;
+}
+
+.like-count {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.like-text {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.post-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+  padding-right: 60px; /* 为获赞数留出空间 */
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.author-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #163229;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.post-date {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.post-excerpt {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+  font-size: 14px;
+}
+
+.post-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.view-btn {
+  pointer-events: none;
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .posts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .like-badge {
+    top: 12px;
+    right: 12px;
+    padding: 3px 6px;
+  }
+  
+  .like-count {
+    font-size: 14px;
+  }
+  
+  .post-title {
+    padding-right: 50px;
+  }
+}
 </style>

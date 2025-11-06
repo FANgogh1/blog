@@ -389,7 +389,10 @@ const uploadImage = async (event) => {
   </div>
 
   <!-- 悬浮新增按钮 -->
-  <button class="btn primary" style="position:fixed; left:24px; bottom:24px; z-index:30;" @click="showCreate = true">新建文章</button>
+  <button class="new-post-btn" style="position:fixed; left:60px; top: 100px; z-index:30;" @click="showCreate = true">
+    <span class="btn-icon">✏️</span>
+    <span class="btn-text">新建文章</span>
+  </button>
 
   <!-- 创建弹窗 -->
   <div v-if="showCreate" style="position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:40;">
@@ -886,5 +889,81 @@ const uploadImage = async (event) => {
   border: none;
   border-top: 1px solid var(--border);
   margin: 24px 0;
+}
+
+/* 美化新建文章按钮 */
+.new-post-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--primary), #00d9ff);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 217, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: auto;
+  white-space: nowrap;
+}
+
+.new-post-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 12px 30px rgba(0, 217, 255, 0.6);
+  background: linear-gradient(135deg, #00d9ff, var(--primary));
+}
+
+.new-post-btn:active {
+  transform: translateY(-1px) scale(1.02);
+  transition: all 0.1s ease;
+}
+
+.btn-icon {
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.btn-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式按钮调整 */
+@media (max-width: 768px) {
+  .new-post-btn {
+    padding: 14px 20px;
+    font-size: 16px;
+    gap: 10px;
+  }
+  
+  .btn-icon {
+    font-size: 20px;
+  }
+  
+  .btn-text {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .new-post-btn {
+    padding: 12px 18px;
+    font-size: 15px;
+    gap: 8px;
+  }
+  
+  .btn-icon {
+    font-size: 18px;
+  }
+  
+  .btn-text {
+    font-size: 15px;
+  }
 }
 </style>
