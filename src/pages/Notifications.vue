@@ -6,6 +6,46 @@ const loading = ref(false);
 const errorMsg = ref('');
 const items = ref([]);
 
+// 获取用户信息（优先从user_profiles表获取最新信息）
+const getUserInfoFromProfiles = async (userId) => {
+  try {
+    // 1. 首先尝试从user_profiles表获取
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      return { 
+        nickname: profileData.nickname || '用户', 
+        avatar_url: profileData.avatar_url || '' 
+      };
+    }
+    
+    // 2. 如果user_profiles表没有数据，尝试从通知表中获取历史记录
+    const { data: notificationsData, error: notificationsError } = await supabase
+      .from('notifications')
+      .select('actor_name, actor_avatar')
+      .eq('actor', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!notificationsError && notificationsData && notificationsData.length > 0) {
+      return { 
+        nickname: notificationsData[0].actor_name || '用户', 
+        avatar_url: notificationsData[0].actor_avatar || '' 
+      };
+    }
+    
+    // 3. 如果都没有数据，返回默认值
+    return { nickname: '用户', avatar_url: '' };
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return { nickname: '用户', avatar_url: '' };
+  }
+};
+
 const fetchNotifications = async () => {
   loading.value = true; errorMsg.value = '';
   const { data: userRes } = await supabase.auth.getUser();
@@ -29,8 +69,6 @@ const fetchNotifications = async () => {
         .limit(100)
     ]);
     
-    loading.value = false;
-    
     if (notificationsResult.error) {
       console.error('获取普通通知失败:', notificationsResult.error);
     }
@@ -40,7 +78,7 @@ const fetchNotifications = async () => {
     }
     
     // 合并通知并排序
-    const allNotifications = [
+    let allNotifications = [
       ...(notificationsResult.data || []).map(n => ({
         ...n,
         source: 'notifications',
@@ -53,15 +91,39 @@ const fetchNotifications = async () => {
       }))
     ];
     
+    // 对每个通知的操作者同步获取最新的用户信息
+    if (allNotifications.length > 0) {
+      try {
+        // 并行处理所有用户信息查询
+        const userInfoPromises = allNotifications.map(notification => {
+          if (notification.actor) {
+            return getUserInfoFromProfiles(notification.actor).then(userInfo => ({
+              ...notification,
+              actor_name: userInfo.nickname,
+              actor_avatar: userInfo.avatar_url
+            }));
+          }
+          return Promise.resolve(notification);
+        });
+        
+        const updatedNotifications = await Promise.all(userInfoPromises);
+        allNotifications = updatedNotifications;
+      } catch (error) {
+        console.error('更新用户信息失败:', error);
+        // 如果更新失败，继续使用原始数据
+      }
+    }
+    
     // 按创建时间排序
     items.value = allNotifications.sort((a, b) => 
       new Date(b.created_at) - new Date(a.created_at)
     );
     
   } catch (err) {
-    loading.value = false;
-    errorMsg.value = '加载通知失败';
     console.error('加载通知失败:', err);
+    errorMsg.value = '加载通知失败';
+  } finally {
+    loading.value = false;
   }
 };
 
