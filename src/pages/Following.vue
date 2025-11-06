@@ -3,6 +3,46 @@ import { ref, onMounted, computed } from 'vue';
 import { supabase } from '../lib/supabase';
 import { getFollowingList } from '../lib/follow';
 
+// 获取用户信息（优先从user_profiles表，其次从posts表，最后默认值）
+const getUserInfoFromProfiles = async (userId) => {
+  try {
+    // 1. 首先尝试从user_profiles表获取
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      return { 
+        nickname: profileData.nickname || '用户', 
+        avatar_url: profileData.avatar_url || '' 
+      };
+    }
+    
+    // 2. 如果user_profiles表没有数据，尝试从posts表获取
+    const { data: postsData, error: postsError } = await supabase
+      .from('posts')
+      .select('author_name, author_avatar')
+      .eq('author', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!postsError && postsData && postsData.length > 0) {
+      return { 
+        nickname: postsData[0].author_name || '用户', 
+        avatar_url: postsData[0].author_avatar || '' 
+      };
+    }
+    
+    // 3. 如果都没有数据，返回默认值
+    return { nickname: '用户', avatar_url: '' };
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return { nickname: '用户', avatar_url: '' };
+  }
+};
+
 const loading = ref(false);
 const errorMsg = ref('');
 const posts = ref([]);
@@ -81,7 +121,28 @@ const fetchFollowingPosts = async () => {
     if (error) throw error;
     
     console.log('获取到的文章数据:', postsData);
-    posts.value = postsData || [];
+    
+    // 对每个文章作者同步获取最新的用户信息
+    const postsWithLatestInfo = await Promise.all(
+      (postsData || []).map(async (post) => {
+        if (post.author) {
+          try {
+            const userInfo = await getUserInfoFromProfiles(post.author);
+            return {
+              ...post,
+              author_name: userInfo.nickname,
+              author_avatar: userInfo.avatar_url
+            };
+          } catch (error) {
+            console.error('获取用户信息失败:', error);
+            return post;
+          }
+        }
+        return post;
+      })
+    );
+    
+    posts.value = postsWithLatestInfo;
     hasFetched.value = true;
     
   } catch (error) {

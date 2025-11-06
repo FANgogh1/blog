@@ -9,19 +9,92 @@ const loading = ref(false);
 const errorMsg = ref('');
 const results = ref([]);
 
+// 获取用户信息（优先从user_profiles表获取最新信息）
+const getUserInfoFromProfiles = async (userId) => {
+  try {
+    // 1. 首先尝试从user_profiles表获取
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      return { 
+        nickname: profileData.nickname || '用户', 
+        avatar_url: profileData.avatar_url || '' 
+      };
+    }
+    
+    // 2. 如果user_profiles表没有数据，尝试从posts表获取
+    const { data: postsData, error: postsError } = await supabase
+      .from('posts')
+      .select('author_name, author_avatar')
+      .eq('author', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!postsError && postsData && postsData.length > 0) {
+      return { 
+        nickname: postsData[0].author_name || '用户', 
+        avatar_url: postsData[0].author_avatar || '' 
+      };
+    }
+    
+    // 3. 如果都没有数据，返回默认值
+    return { nickname: '用户', avatar_url: '' };
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return { nickname: '用户', avatar_url: '' };
+  }
+};
+
 const search = async () => {
   const keyword = q.value.trim();
   if (!keyword) { results.value = []; return; }
   loading.value = true;
   errorMsg.value = '';
+  
+  // 搜索文章
   const { data, error } = await supabase
     .from('posts')
     .select('*')
     .ilike('title', `%${keyword}%`)
     .order('created_at', { ascending: false });
+  
+  if (error) {
+    loading.value = false;
+    errorMsg.value = error.message || '搜索失败';
+    results.value = [];
+    return;
+  }
+  
+  // 获取用户信息并更新文章数据
+  if (data && data.length > 0) {
+    try {
+      // 并行处理所有用户信息查询
+      const userInfoPromises = data.map(post => {
+        if (post.author) {
+          return getUserInfoFromProfiles(post.author).then(userInfo => ({
+            ...post,
+            author_name: userInfo.nickname,
+            author_avatar: userInfo.avatar_url
+          }));
+        }
+        return Promise.resolve(post);
+      });
+      
+      const updatedResults = await Promise.all(userInfoPromises);
+      results.value = updatedResults;
+    } catch (error) {
+      console.error('更新用户信息失败:', error);
+      results.value = data; // 如果更新失败，使用原始数据
+    }
+  } else {
+    results.value = data || [];
+  }
+  
   loading.value = false;
-  if (error) { errorMsg.value = error.message || '搜索失败'; results.value = []; return; }
-  results.value = data || [];
 };
 
 onMounted(search);

@@ -1,35 +1,57 @@
 import { supabase } from './supabase';
 
-// 从posts表中获取用户信息
-const getUserInfoFromPosts = async (userId) => {
+// 从user_profiles表中获取用户信息
+const getUserInfoFromProfiles = async (userId) => {
   try {
-    const { data: postsData, error } = await supabase
+    // 首先尝试从user_profiles表获取最新用户信息
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      return {
+        id: userId,
+        email: profileData.email || '用户',
+        user_metadata: {
+          nickname: profileData.nickname || '用户',
+          bio: profileData.bio || '',
+          avatar_url: profileData.avatar_url || '',
+          background_url: profileData.background_url || ''
+        }
+      };
+    }
+    
+    // 如果user_profiles表没有数据，回退到从posts表获取
+    const { data: postsData, error: postsError } = await supabase
       .from('posts')
       .select('author_name, author_avatar')
       .eq('author', userId)
       .limit(1);
     
-    if (error || !postsData || postsData.length === 0) {
+    if (!postsError && postsData && postsData.length > 0) {
       return {
         id: userId,
         email: '用户',
         user_metadata: {
-          nickname: '用户',
-          avatar_url: ''
+          nickname: postsData[0].author_name || '用户',
+          avatar_url: postsData[0].author_avatar || ''
         }
       };
     }
     
+    // 最后使用默认用户信息
     return {
       id: userId,
       email: '用户',
       user_metadata: {
-        nickname: postsData[0].author_name || '用户',
-        avatar_url: postsData[0].author_avatar || ''
+        nickname: '用户',
+        avatar_url: ''
       }
     };
   } catch (error) {
-    console.error('从posts表获取用户信息失败:', error);
+    console.error('获取用户信息失败:', error);
     return {
       id: userId,
       email: '用户',
@@ -88,7 +110,7 @@ export const followUser = async (targetUserId) => {
     // 发送关注通知给被关注用户
     try {
       // 获取当前用户信息
-      const currentUserInfo = await getUserInfoFromPosts(currentUser.id);
+      const currentUserInfo = await getUserInfoFromProfiles(currentUser.id);
       
       // 发送关注通知到新的关注通知表
       const notificationResult = await supabase
@@ -235,7 +257,7 @@ export const getFollowingList = async (userId) => {
     // 为每个关注关系获取用户信息
     const followingList = [];
     for (const item of data || []) {
-      const userInfo = await getUserInfoFromPosts(item.following_id);
+      const userInfo = await getUserInfoFromProfiles(item.following_id);
       followingList.push({
         ...item,
         user: userInfo
@@ -267,7 +289,7 @@ export const getFollowersList = async (userId) => {
     // 为每个粉丝关系获取用户信息
     const followersList = [];
     for (const item of data || []) {
-      const userInfo = await getUserInfoFromPosts(item.follower_id);
+      const userInfo = await getUserInfoFromProfiles(item.follower_id);
       followersList.push({
         ...item,
         user: userInfo

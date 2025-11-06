@@ -2,6 +2,46 @@
 import { ref, onMounted } from 'vue';
 import { supabase } from '../lib/supabase';
 
+// 获取用户信息（优先从user_profiles表，其次从posts表，最后默认值）
+const getUserInfoFromProfiles = async (userId) => {
+  try {
+    // 1. 首先尝试从user_profiles表获取
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      return { 
+        nickname: profileData.nickname || '用户', 
+        avatar_url: profileData.avatar_url || '' 
+      };
+    }
+    
+    // 2. 如果user_profiles表没有数据，尝试从posts表获取
+    const { data: postsData, error: postsError } = await supabase
+      .from('posts')
+      .select('author_name, author_avatar')
+      .eq('author', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!postsError && postsData && postsData.length > 0) {
+      return { 
+        nickname: postsData[0].author_name || '用户', 
+        avatar_url: postsData[0].author_avatar || '' 
+      };
+    }
+    
+    // 3. 如果都没有数据，返回默认值
+    return { nickname: '用户', avatar_url: '' };
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return { nickname: '用户', avatar_url: '' };
+  }
+};
+
 const loading = ref(true);
 const errorMsg = ref('');
 const items = ref([]); // [{ post, likeCount }]
@@ -31,18 +71,39 @@ const fetchHot = async () => {
     let posts = [];
     if (countMap.size > 0) {
       const ids = Array.from(countMap.keys());
-      const { data: postsRes, error: postErr } = await supabase
-        .from('posts')
-        .select('*')
-        .in('id', ids);
-      if (postErr) throw postErr;
-      posts = postsRes || [];
-      // 组合并按点赞数降序
-      const mapById = new Map(posts.map(p => [p.id, p]));
-      items.value = ids
-        .map(id => ({ post: mapById.get(id), likeCount: countMap.get(id) || 0 }))
-        .filter(it => !!it.post)
-        .sort((a, b) => b.likeCount - a.likeCount);
+    const { data: postsRes, error: postErr } = await supabase
+      .from('posts')
+      .select('*')
+      .in('id', ids);
+    if (postErr) throw postErr;
+    posts = postsRes || [];
+    
+    // 对每个文章作者同步获取最新的用户信息
+    const postsWithLatestInfo = await Promise.all(
+      posts.map(async (post) => {
+        if (post.author) {
+          try {
+            const userInfo = await getUserInfoFromProfiles(post.author);
+            return {
+              ...post,
+              author_name: userInfo.nickname,
+              author_avatar: userInfo.avatar_url
+            };
+          } catch (error) {
+            console.error('获取用户信息失败:', error);
+            return post;
+          }
+        }
+        return post;
+      })
+    );
+    
+    // 组合并按点赞数降序
+    const mapById = new Map(postsWithLatestInfo.map(p => [p.id, p]));
+    items.value = ids
+      .map(id => ({ post: mapById.get(id), likeCount: countMap.get(id) || 0 }))
+      .filter(it => !!it.post)
+      .sort((a, b) => b.likeCount - a.likeCount);
     } else {
       // 无点赞数据：按时间降序展示最近文章，点赞数视为 0
       const { data: postsRes, error: postErr } = await supabase
@@ -52,7 +113,28 @@ const fetchHot = async () => {
         .limit(20);
       if (postErr) throw postErr;
       posts = postsRes || [];
-      items.value = posts.map(p => ({ post: p, likeCount: 0 }));
+      
+      // 对每个文章作者同步获取最新的用户信息
+      const postsWithLatestInfo = await Promise.all(
+        posts.map(async (post) => {
+          if (post.author) {
+            try {
+              const userInfo = await getUserInfoFromProfiles(post.author);
+              return {
+                ...post,
+                author_name: userInfo.nickname,
+                author_avatar: userInfo.avatar_url
+              };
+            } catch (error) {
+              console.error('获取用户信息失败:', error);
+              return post;
+            }
+          }
+          return post;
+        })
+      );
+      
+      items.value = postsWithLatestInfo.map(p => ({ post: p, likeCount: 0 }));
     }
   } catch (e) {
     errorMsg.value = e?.message || '加载失败';

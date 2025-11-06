@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { supabase } from '../lib/supabase';
 import ContributionCalendar from '../components/ContributionCalendar.vue';
 import { 
@@ -14,6 +14,7 @@ import {
 } from '../lib/follow';
 
 const route = useRoute();
+const router = useRouter();
 const props = defineProps({
   id: {
     type: String,
@@ -49,6 +50,7 @@ const showFollowersList = ref(false);
 const followingList = ref([]);
 const followersList = ref([]);
 const listLoading = ref(false);
+const unfollowLoading = ref(new Set()); // 用于跟踪正在取消关注的用户
 
 // 判断是否是查看自己的主页
 const isOwnProfile = computed(() => {
@@ -78,25 +80,61 @@ const loadUserProfile = async (userId) => {
       }
     } else {
       // 查看其他用户的主页，通过ID查询用户信息
-      // 首先尝试从posts表中获取用户的基本信息
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select('author_name, author_avatar')
-        .eq('author', userId)
-        .limit(1);
-        
-      if (!postsError && postsData && postsData.length > 0) {
-        // 从文章表中获取用户信息
-        user.value = {
-          id: userId,
-          email: '用户',
-          user_metadata: {
-            nickname: postsData[0].author_name || '用户',
-            avatar_url: postsData[0].author_avatar || ''
+      // 创建一个自定义的用户信息表来存储公开的用户资料
+      try {
+        // 首先尝试从专门的用户资料表获取信息
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+          
+        if (!profileError && profileData) {
+          // 从用户资料表获取信息
+          user.value = {
+            id: userId,
+            email: profileData.email || '用户',
+            user_metadata: {
+              nickname: profileData.nickname || '用户',
+              bio: profileData.bio || '',
+              avatar_url: profileData.avatar_url || '',
+              background_url: profileData.background_url || ''
+            }
+          };
+        } else {
+          // 如果用户资料表不存在或没有数据，从posts表获取最新的文章信息
+          const { data: postsData, error: postsError } = await supabase
+            .from('posts')
+            .select('author_name, author_avatar')
+            .eq('author', userId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (!postsError && postsData && postsData.length > 0) {
+            // 从最新的文章获取用户信息（相对较新的昵称）
+            user.value = {
+              id: userId,
+              email: '用户',
+              user_metadata: {
+                nickname: postsData[0].author_name || '用户',
+                avatar_url: postsData[0].author_avatar || ''
+              }
+            };
+          } else {
+            // 如果没有文章信息，显示默认用户信息
+            user.value = {
+              id: userId,
+              email: '用户',
+              user_metadata: {
+                nickname: '用户',
+                avatar_url: ''
+              }
+            };
           }
-        };
-      } else {
-        // 如果文章表中也没有信息，显示默认用户信息
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+        // 显示默认用户信息
         user.value = {
           id: userId,
           email: '用户',
@@ -217,6 +255,23 @@ const onSave = async () => {
       }
     });
     if (error) throw error;
+
+    // 同步到公开的用户资料表，方便他人查看
+    const userData = data.user;
+    const meta = userData.user_metadata || {};
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .upsert({
+        user_id: userData.id,
+        email: userData.email,
+        nickname: meta.nickname || '',
+        bio: meta.bio || '',
+        avatar_url: meta.avatar_url || '',
+        background_url: meta.background_url || '',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
 
     // 同步本地 user
     user.value = data.user;
@@ -347,6 +402,60 @@ const showFollowingModal = async () => {
 const showFollowersModal = async () => {
   showFollowersList.value = true;
   await loadFollowersList();
+};
+
+/** 取消关注用户（在关注列表中） */
+const unfollowUserInList = async (targetUserId, targetUserIndex) => {
+  if (!currentUser.value || !user.value) {
+    followError.value = '请先登录';
+    return;
+  }
+  
+  if (targetUserId === currentUser.value.id) {
+    followError.value = '不能取消关注自己';
+    return;
+  }
+  
+  // 添加正在取消关注的用户到loading集合
+  unfollowLoading.value.add(targetUserId);
+  
+  try {
+    const result = await unfollowUser(targetUserId);
+    if (result.success) {
+      // 从关注列表中移除该用户
+      followingList.value.splice(targetUserIndex, 1);
+      // 更新关注数量
+      followingCount.value = Math.max(0, followingCount.value - 1);
+      
+      // 如果当前查看的是自己的主页，且取消关注的是正在查看的用户，更新关注状态
+      if (isOwnProfile.value && user.value.id === targetUserId) {
+        isFollowingUser.value = false;
+      }
+    } else {
+      followError.value = result.error;
+    }
+  } catch (error) {
+    followError.value = '取消关注失败，请重试';
+    console.error('取消关注失败:', error);
+  } finally {
+    // 移除loading状态
+    unfollowLoading.value.delete(targetUserId);
+  }
+};
+
+/** 跳转到用户个人主页 */
+const navigateToUserProfile = (userId) => {
+  // 关闭当前弹窗
+  showFollowingList.value = false;
+  showFollowersList.value = false;
+  
+  // 如果当前已在目标用户页面，则不跳转
+  if (route.params.id === userId) {
+    return;
+  }
+  
+  // 跳转到用户个人主页
+  router.push({ name: 'user', params: { id: userId } });
 };
 
 </script>
@@ -507,9 +616,9 @@ const showFollowersModal = async () => {
               还没有关注任何人
             </div>
             <div v-else>
-              <div v-for="item in followingList" :key="item.following_id" class="user-item">
+              <div v-for="(item, index) in followingList" :key="item.following_id" class="user-item">
                 <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border);">
-                  <div style="position:relative;">
+                  <div style="position:relative; cursor:pointer;" @click="navigateToUserProfile(item.following_id)">
                     <img v-if="item.user.user_metadata?.avatar_url" :src="item.user.user_metadata.avatar_url" alt="avatar"
                          style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
                     <div v-else
@@ -517,13 +626,21 @@ const showFollowersModal = async () => {
                       {{ (item.user.user_metadata?.nickname || item.user.email || 'U').slice(0,1).toUpperCase() }}
                     </div>
                   </div>
-                  <div style="flex:1;">
-                    <div style="font-weight:600;">{{ item.user.user_metadata?.nickname || '用户' }}</div>
+                  <div style="flex:1; cursor:pointer;" @click="navigateToUserProfile(item.following_id)">
+                    <div style="font-weight:600; text-decoration:underline;">{{ item.user.user_metadata?.nickname || '用户' }}</div>
                     <div style="color:var(--muted); font-size:12px;">{{ item.user.email }}</div>
                   </div>
-                  <div style="color:var(--muted); font-size:12px;">
+                  <div style="color:var(--muted); font-size:12px; margin-right:8px;">
                     {{ new Date(item.created_at).toLocaleDateString('zh-CN') }}
                   </div>
+                  <!-- 取消关注按钮 -->
+                  <button v-if="isOwnProfile" 
+                          class="btn btn-sm"
+                          style="background:#ff6b6b; color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px;"
+                          @click="unfollowUserInList(item.following_id, index)"
+                          :disabled="unfollowLoading.has(item.following_id)">
+                    {{ unfollowLoading.has(item.following_id) ? '取消中...' : '取消关注' }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -548,7 +665,7 @@ const showFollowersModal = async () => {
             <div v-else>
               <div v-for="item in followersList" :key="item.follower_id" class="user-item">
                 <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border);">
-                  <div style="position:relative;">
+                  <div style="position:relative; cursor:pointer;" @click="navigateToUserProfile(item.follower_id)">
                     <img v-if="item.user.user_metadata?.avatar_url" :src="item.user.user_metadata.avatar_url" alt="avatar"
                          style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
                     <div v-else
@@ -556,8 +673,8 @@ const showFollowersModal = async () => {
                       {{ (item.user.user_metadata?.nickname || item.user.email || 'U').slice(0,1).toUpperCase() }}
                     </div>
                   </div>
-                  <div style="flex:1;">
-                    <div style="font-weight:600;">{{ item.user.user_metadata?.nickname || '用户' }}</div>
+                  <div style="flex:1; cursor:pointer;" @click="navigateToUserProfile(item.follower_id)">
+                    <div style="font-weight:600; text-decoration:underline;">{{ item.user.user_metadata?.nickname || '用户' }}</div>
                     <div style="color:var(--muted); font-size:12px;">{{ item.user.email }}</div>
                   </div>
                   <div style="color:var(--muted); font-size:12px;">

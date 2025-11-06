@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { supabase } from '../lib/supabase';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
@@ -8,7 +8,59 @@ import Quill from 'quill';
 import { useAISummary } from '../lib/dify';
 
 const route = useRoute();
+const router = useRouter();
 const id = computed(() => String(route.params.id));
+
+// 从user_profiles表中获取用户信息
+const getUserInfoFromProfiles = async (userId) => {
+  try {
+    // 首先尝试从user_profiles表获取最新用户信息
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      return {
+        nickname: profileData.nickname || '用户',
+        avatar_url: profileData.avatar_url || '',
+        bio: profileData.bio || '',
+        email: profileData.email || '用户'
+      };
+    }
+    
+    // 如果user_profiles表没有数据，回退到从posts表获取
+    const { data: postsData, error: postsError } = await supabase
+      .from('posts')
+      .select('author_name, author_avatar')
+      .eq('author', userId)
+      .limit(1);
+    
+    if (!postsError && postsData && postsData.length > 0) {
+      return {
+        nickname: postsData[0].author_name || '用户',
+        avatar_url: postsData[0].author_avatar || ''
+      };
+    }
+    
+    // 最后使用默认用户信息
+    return {
+      nickname: '用户',
+      avatar_url: '',
+      bio: '',
+      email: '用户'
+    };
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return {
+      nickname: '用户',
+      avatar_url: '',
+      bio: '',
+      email: '用户'
+    };
+  }
+};
 
 const title = ref('加载中...');
 const content = ref('');
@@ -222,7 +274,27 @@ const fetchComments = async (postId) => {
   }
   const { data: userRes } = await supabase.auth.getUser();
   const uid = userRes?.user?.id || userRes?.data?.user?.id || null;
-  comments.value = (data || []).map(c => ({ ...c, _isMine: uid && c.user_id === uid }));
+  
+  // 为每个评论获取最新的用户信息
+  const commentsWithUserInfo = [];
+  for (const comment of data || []) {
+    if (comment.user_id) {
+      const userInfo = await getUserInfoFromProfiles(comment.user_id);
+      commentsWithUserInfo.push({
+        ...comment,
+        author_name: userInfo.nickname || comment.author_name || '匿名',
+        author_avatar: userInfo.avatar_url || comment.author_avatar || '',
+        _isMine: uid && comment.user_id === uid
+      });
+    } else {
+      commentsWithUserInfo.push({
+        ...comment,
+        _isMine: uid && comment.user_id === uid
+      });
+    }
+  }
+  
+  comments.value = commentsWithUserInfo;
 };
 
 const addComment = async () => {
@@ -236,13 +308,11 @@ const addComment = async () => {
     commentError.value = '请先登录后再发表评论';
     return;
   }
-  const meta = user.user_metadata || {};
-  const author_name = (meta.nickname && meta.nickname.trim())
-    || (meta.full_name && meta.full_name.trim())
-    || (meta.name && meta.name.trim())
-    || user.email
-    || '匿名';
-  const author_avatar = meta.avatar_url || meta.picture || '';
+  
+  // 从user_profiles表获取最新的用户信息
+  const userInfo = await getUserInfoFromProfiles(user.id);
+  const author_name = userInfo.nickname || '匿名';
+  const author_avatar = userInfo.avatar_url || '';
 
   commentLoading.value = true;
   const { error } = await supabase
@@ -389,9 +459,18 @@ onMounted(async () => {
   if (!error && data) {
     title.value = data.title;
     content.value = data.content;
-    authorName.value = data.author_name || '匿名';
-    authorAvatar.value = data.author_avatar || '';
     authorId.value = data.author || '';
+    
+    // 从user_profiles表获取最新的作者信息
+    if (data.author) {
+      const userInfo = await getUserInfoFromProfiles(data.author);
+      authorName.value = userInfo.nickname || '匿名';
+      authorAvatar.value = userInfo.avatar_url || '';
+    } else {
+      authorName.value = data.author_name || '匿名';
+      authorAvatar.value = data.author_avatar || '';
+    }
+    
     publishTime.value = data.created_at ? new Date(data.created_at).toLocaleString() : '';
     editForm.value = { title: data.title, content: data.content };
     // 判断是否本人文章
@@ -416,6 +495,19 @@ onMounted(async () => {
   // 评论加载（后端）
   await fetchComments(id.value);
 });
+
+/** 跳转到用户个人主页 */
+const navigateToUserProfile = (userId) => {
+  if (!userId) return;
+  
+  // 如果当前已在目标用户页面，则不跳转
+  if (route.params.id === userId) {
+    return;
+  }
+  
+  // 跳转到用户个人主页
+  router.push({ name: 'user', params: { id: userId } });
+};
 </script>
 
 <template>
@@ -509,11 +601,13 @@ onMounted(async () => {
       <ul v-else style="list-style:none; padding:0; margin:0; display:grid; gap:10px;">
         <li v-for="c in comments" :key="c.id" class="card" style="padding:12px; display:grid; gap:6px;">
           <div style="display:flex; align-items:center; gap:8px; color:var(--muted);">
-            <img v-if="c.author_avatar" :src="c.author_avatar" alt="avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
-            <div v-else style="width:22px; height:22px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--primary); font-weight:700;">
-              {{ (c.author_name || '匿名').slice(0,1).toUpperCase() }}
+            <div style="position:relative; cursor:pointer;" @click="navigateToUserProfile(c.user_id)">
+              <img v-if="c.author_avatar" :src="c.author_avatar" alt="avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" />
+              <div v-else style="width:22px; height:22px; border-radius:50%; background:#163229; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--primary); font-weight:700;">
+                {{ (c.author_name || '匿名').slice(0,1).toUpperCase() }}
+              </div>
             </div>
-            <span>{{ c.author_name || '匿名' }}</span>
+            <span style="cursor:pointer; text-decoration:underline;" @click="navigateToUserProfile(c.user_id)">{{ c.author_name || '匿名' }}</span>
             <span style="margin-left:auto; font-size:12px;">{{ c.created_at ? new Date(c.created_at).toLocaleString() : '' }}</span>
           </div>
           <div style="display:flex; align-items:flex-start; gap:8px;">
