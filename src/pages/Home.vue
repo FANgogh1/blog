@@ -13,7 +13,7 @@ const getUserInfoFromProfiles = async (userId) => {
     // 1. 首先尝试从user_profiles表获取
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
-      .select('*')
+      .select('nickname, avatar_url')
       .eq('user_id', userId)
       .single();
     
